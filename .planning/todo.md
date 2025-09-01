@@ -70,36 +70,36 @@ This checklist aligns with the PRD and prioritizes the table-first “red thread
 ## F) Items, Status Machine, Start Policy
 
 - 1. Task: Implement item generation for a single plan stub (e.g., Calm) with deps and base estimates.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Items enter `queued`; resolver promotes to `assigned` when deps satisfied.
   - Unit test: `deps-resolver`: given a small DAG, assert eligible moves to `assigned`; a cycle triggers detection and safe handling (e.g., later edge ignored).
 
 - 2. Task: Start cadence with soft concurrency cap (`MAX_CONCURRENT`), Poisson-ish staggering; one agent per item.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Items transition `assigned → in_progress`; agent created and bound.
   - Unit test: `start-policy-cap`: with 20 eligible items and cap=12, at most 12 start; repeated calls don’t exceed cap.
 
 - 3. Task: In‑progress updates per tick: wobble `tps` within `[min,max]`, accumulate `tokens_done`, roll `eta_ms`.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Stable per-item progress and ETAs.
   - Unit test: `tps-wobble-bounds`: run wobble N times; assert min/max bounds and no NaN/Infinity.
 
 - 4. Task: Completion: when ETA ≤ 0 (or position reaches center later), transition to `done`; clear agent.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Items leave the live set and contribute to totals.
   - Unit test: `complete-item`: simulate ticks to drive ETA to zero; assert status becomes `done` and agent removed.
 
 ## G) Metrics (Worker‑Owned)
 
 - 1. Task: Compute metrics each tick: active agents, total tokens, total spend, live tps, spend/sec, completion rate (eligible denominator).
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Accurate counters sent in tick diffs.
   - Unit test: `metrics-math`: construct a small state with known token deltas; assert totals, live rates, and completion rate match expected.
 
 ## H) Work Items Table (UI)
 
 - 1. Task: Implement `components/WorkTable.tsx` rendering columns: ID, Sector, Status, Tokens (done/est), TPS (cur/min–max), ETA, Deps, Agent; sort by status→ID.
-  - Status: pending
+  - Status: in_progress
   - Output: Live table that reflects store projection.
   - Unit test: `table-sorts-and-formats`: render with a few items; assert order, status chips, and truncated deps (`+n more`).
 

@@ -29,12 +29,14 @@ export function attachBridgeToStore(
   const itemMap = new Map<string, Partial<WorkItem> & { id: string }>();
   const agentMap = new Map<string, Partial<Agent> & { id: string }>();
   let metricsPatch: Partial<ProjectMetrics> | null = null;
+  const agentsRemove = new Set<string>();
 
   const clearAgg = () => {
     latestTick = 0;
     itemMap.clear();
     agentMap.clear();
     metricsPatch = null;
+    agentsRemove.clear();
   };
 
   const scheduleFlush = () => {
@@ -45,8 +47,9 @@ export function attachBridgeToStore(
       const items = itemMap.size ? Array.from(itemMap.values()) : undefined;
       const agents = agentMap.size ? Array.from(agentMap.values()) : undefined;
       const metrics = metricsPatch ?? undefined;
-      debugLog('bridgeToStore', 'applyTick', { tick_id: latestTick, items: items?.length ?? 0, agents: agents?.length ?? 0, metrics: !!metrics });
-      store.getState().applyTick({ tick_id: latestTick, items, agents, metrics });
+      const agents_remove = agentsRemove.size ? Array.from(agentsRemove) : undefined;
+      debugLog('bridgeToStore', 'applyTick', { tick_id: latestTick, items: items?.length ?? 0, agents: agents?.length ?? 0, metrics: !!metrics, agents_remove: agents_remove?.length ?? 0 });
+      store.getState().applyTick({ tick_id: latestTick, items, agents, metrics, agents_remove });
       clearAgg();
     }, Math.max(0, interval));
   };
@@ -76,6 +79,7 @@ export function attachBridgeToStore(
         }
       }
       if (msg.metrics) metricsPatch = { ...(metricsPatch ?? {}), ...msg.metrics };
+      if ('agents_remove' in msg && msg.agents_remove) for (const id of msg.agents_remove) agentsRemove.add(id);
       scheduleFlush();
       return;
     }

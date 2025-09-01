@@ -15,6 +15,7 @@ export type SimMsg =
       items?: Partial<WorkItem>[];
       agents?: Partial<Agent>[];
       metrics?: Partial<ProjectMetrics>;
+      agents_remove?: string[];
     }
   | { type: 'complete_item'; id: string };
 

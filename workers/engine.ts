@@ -4,7 +4,11 @@
 
 import { DEFAULT_SEED, ENGINE_TICK_HZ, RUNNING_DEFAULT } from '../lib/config';
 import { debugLog } from '../lib/debug';
-import type { AppState, ProjectMetrics } from '../lib/types';
+import { buildItemsFromPlan, detectCycles, promoteQueuedToAssigned, countInProgress, computeMetrics } from '@/lib/engine';
+import { calmPlan } from '@/plans';
+import { createRNG } from '@/lib/rng';
+import { MAX_CONCURRENT } from '@/lib/constants';
+import type { AppState, ProjectMetrics, Agent, WorkItem } from '../lib/types';
 
 export const ENGINE_WORKER_MODULE_LOADED = true;
 
@@ -43,6 +47,10 @@ interface Ctx {
   plan: PlanName;
   timer: any;
   tickMs: number;
+  rng: ReturnType<typeof createRNG>;
+  nextStartAt: number; // epoch ms for next start attempt
+  agentCounter: number;
+  lastTickAt: number;
 }
 
 function postSnapshot(ctx: Ctx) {
@@ -50,11 +58,98 @@ function postSnapshot(ctx: Ctx) {
   ;(self as any).postMessage({ type: 'snapshot', state: ctx.state });
 }
 
-function postTick(ctx: Ctx) {
-  ctx.tickId += 1;
-  debugLog('worker', 'postTick', { tickId: ctx.tickId });
-  ;(self as any).postMessage({ type: 'tick', tick_id: ctx.tickId });
+
+function expDelayMs(mean: number, rng: ReturnType<typeof createRNG>) {
+  const u = Math.max(1e-6, rng.next());
+  return -Math.log(1 - u) * mean;
 }
+
+function tryStartOne(ctx: Ctx, now: number, diffs: { items: Partial<WorkItem>[]; agents: Partial<Agent>[] }) {
+  const inProg = countInProgress(ctx.state.items);
+  if (inProg >= MAX_CONCURRENT) return false;
+
+  const assigned = Object.values(ctx.state.items).filter((i) => i.status === 'assigned');
+  if (assigned.length === 0) return false;
+  // pick random assigned
+  const pick = assigned[Math.floor(ctx.rng.next() * assigned.length)];
+  const agentId = `AG${++ctx.agentCounter}`;
+  const nowMs = now;
+  // minimal agent (positions unused yet)
+  ctx.state.agents[agentId] = { id: agentId, work_item_id: pick.id, x: 0, y: 0, v: 0.002, curve_phase: 0 } as Agent;
+  pick.status = 'in_progress';
+  pick.agent_id = agentId;
+  pick.started_at = nowMs;
+  // include minimal diffs
+  diffs.items.push({ id: pick.id, status: 'in_progress', agent_id: agentId, started_at: nowMs });
+  diffs.agents.push({ id: agentId, work_item_id: pick.id } as Partial<Agent>);
+  debugLog('worker', 'start_item', { id: pick.id, agent: agentId });
+  return true;
+}
+
+function stepEngine(ctx: Ctx) {
+  const now = Date.now();
+  const diffs: { items: Partial<WorkItem>[]; agents: Partial<Agent>[]; agents_remove?: string[] } = { items: [], agents: [] };
+  const dtSec = Math.max(0, (now - ctx.lastTickAt) / 1000);
+  ctx.lastTickAt = now;
+
+  // Promote any newly eligible items
+  const newlyAssigned = promoteQueuedToAssigned(ctx.state.items);
+  for (const id of newlyAssigned) diffs.items.push({ id, status: 'assigned' });
+
+  // Start cadence: Poisson-like with mean 800ms, obey cap
+  if (ctx.running && now >= ctx.nextStartAt) {
+    if (tryStartOne(ctx, now, diffs)) {
+      // schedule next start
+      const mean = 800 / ctx.speed;
+      ctx.nextStartAt = now + Math.max(50, expDelayMs(mean, ctx.rng));
+    } else {
+      // nothing to start; check again soon
+      ctx.nextStartAt = now + 300;
+    }
+  }
+
+  // Update in-progress items
+  for (const it of Object.values(ctx.state.items)) {
+    if (it.status !== 'in_progress') continue;
+    // wobble tps within [min,max]
+    const target = it.tps_min + (it.tps_max - it.tps_min) * ctx.rng.next();
+    let tps = 0.9 * (it.tps || it.tps_min) + 0.1 * target;
+    if (!Number.isFinite(tps)) tps = it.tps_min;
+    tps = Math.max(it.tps_min, Math.min(it.tps_max, tps));
+    it.tps = tps;
+    // accumulate tokens
+    it.tokens_done += tps * dtSec;
+    if (!Number.isFinite(it.tokens_done)) it.tokens_done = 0;
+    // eta by elapsed time
+    const started = it.started_at ?? now;
+    it.eta_ms = Math.max(0, it.estimate_ms - (now - started));
+    diffs.items.push({ id: it.id, tps: it.tps, tokens_done: it.tokens_done, eta_ms: it.eta_ms });
+    // completion
+    if (it.eta_ms <= 0) {
+      it.status = 'done';
+      const agentId = it.agent_id;
+      it.agent_id = undefined;
+      diffs.items.push({ id: it.id, status: 'done', agent_id: undefined });
+      if (agentId && (ctx.state.agents as any)[agentId]) {
+        delete (ctx.state.agents as any)[agentId];
+        (diffs.agents_remove ||= []).push(agentId);
+      }
+    }
+  }
+  return diffs;
+}
+
+function postTick(ctx: Ctx) {
+  // apply engine step to build diffs
+  const diffs = stepEngine(ctx);
+  // metrics
+  const metrics = computeMetrics(ctx.state.items as any, ctx.state.agents as any);
+  ctx.state.metrics = metrics;
+  ctx.tickId += 1;
+  debugLog('worker', 'postTick', { tickId: ctx.tickId, items: diffs.items.length, agents: diffs.agents.length, agents_remove: diffs.agents_remove?.length ?? 0 });
+  (self as any).postMessage({ type: 'tick', tick_id: ctx.tickId, items: diffs.items.length ? diffs.items : undefined, agents: diffs.agents.length ? diffs.agents : undefined, agents_remove: diffs.agents_remove && diffs.agents_remove.length ? diffs.agents_remove : undefined, metrics });
+}
+
 
 function startLoop(ctx: Ctx) {
   if (ctx.timer) return;
@@ -70,6 +165,18 @@ function stopLoop(ctx: Ctx) {
   debugLog('worker', 'stopLoop');
   clearInterval(ctx.timer);
   ctx.timer = null;
+}
+
+function loadPlan(ctx: Ctx, name: PlanName) {
+  // For now, only Calm is wired. Later, switch on name.
+  const planDef = calmPlan;
+  const items = buildItemsFromPlan(planDef);
+  const cycles = detectCycles(items);
+  if (cycles.length) debugLog('worker', 'plan-cycles-detected', { count: cycles.length });
+  // Promote initial eligible (no deps) to assigned
+  promoteQueuedToAssigned(items);
+  ctx.state.items = items;
+  ctx.plan = name;
 }
 
 function handleIntent(ctx: Ctx, intent: any) {
@@ -90,9 +197,13 @@ function handleIntent(ctx: Ctx, intent: any) {
       return;
     }
     case 'set_plan': {
-      ctx.plan = (intent.plan as PlanName) ?? 'Calm';
-      debugLog('worker', 'intent:set_plan', { plan: ctx.plan });
-      // For MVP handshake, plan has no effect yet beyond acknowledging.
+      const name = (intent.plan as PlanName) ?? 'Calm';
+      debugLog('worker', 'intent:set_plan', { plan: name });
+      // Load items from plan and pause so user can inspect
+      loadPlan(ctx, name);
+      ctx.running = false;
+      ctx.state.running = false;
+      stopLoop(ctx);
       postSnapshot(ctx);
       return;
     }
@@ -121,6 +232,10 @@ function makeCtx(): Ctx {
     plan: 'Calm',
     timer: null,
     tickMs: hzToMs(ENGINE_TICK_HZ),
+    rng: createRNG(DEFAULT_SEED),
+    nextStartAt: Date.now(),
+    agentCounter: 0,
+    lastTickAt: Date.now(),
   };
 }
 
@@ -130,6 +245,8 @@ debugLog('worker', 'bootstrap', { isDedicatedWorker: IS_DEDICATED_WORKER, ENGINE
 
 if (IS_DEDICATED_WORKER) {
   const ctx = makeCtx();
+  // Preload default plan so snapshot includes items for inspection
+  loadPlan(ctx, 'Calm');
   // Post initial snapshot immediately so UI can latch onto state
   postSnapshot(ctx);
   // Start ticking if running by default

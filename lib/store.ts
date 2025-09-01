@@ -13,6 +13,7 @@ export interface UIState extends AppState {
     items?: PartialWithId<WorkItem>[];
     agents?: PartialWithId<Agent>[];
     metrics?: Partial<ProjectMetrics>;
+    agents_remove?: string[];
   }) => void;
 }
 
@@ -66,6 +67,12 @@ export function createAppStore(initial?: Partial<AppState>) {
             const id = patch.id;
             const prev = agents[id] ?? ({ id } as Agent);
             agents[id] = { ...prev, ...patch } as Agent;
+          }
+        }
+
+        if (diff.agents_remove && diff.agents_remove.length) {
+          for (const id of diff.agents_remove) {
+            if (id in agents) delete agents[id];
           }
         }
 
