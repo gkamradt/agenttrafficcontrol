@@ -29,11 +29,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.0.2",
+    "comlink-loader": "^2.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "jsdom": "^26.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "worker-loader": "^3.0.8"
   }
 }
