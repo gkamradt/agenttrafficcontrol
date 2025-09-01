@@ -5,7 +5,7 @@
 import { DEFAULT_SEED, ENGINE_TICK_HZ, RUNNING_DEFAULT } from '../lib/config';
 import { debugLog } from '../lib/debug';
 import { buildItemsFromPlan, detectCycles, promoteQueuedToAssigned, countInProgress, computeMetrics } from '@/lib/engine';
-import { calmPlan } from '@/plans';
+import { calmPlan, rushPlan, webPlan } from '@/plans';
 import { createRNG } from '@/lib/rng';
 import { MAX_CONCURRENT } from '@/lib/constants';
 import type { AppState, ProjectMetrics, Agent, WorkItem } from '../lib/types';
@@ -168,8 +168,8 @@ function stopLoop(ctx: Ctx) {
 }
 
 function loadPlan(ctx: Ctx, name: PlanName) {
-  // For now, only Calm is wired. Later, switch on name.
-  const planDef = calmPlan;
+  // Choose plan by name
+  const planDef = name === 'Rush' ? rushPlan : name === 'Web' ? webPlan : calmPlan;
   const items = buildItemsFromPlan(planDef);
   const cycles = detectCycles(items);
   if (cycles.length) debugLog('worker', 'plan-cycles-detected', { count: cycles.length });
@@ -192,6 +192,10 @@ function handleIntent(ctx: Ctx, intent: any) {
     }
     case 'set_seed': {
       ctx.state.seed = String(intent.seed ?? DEFAULT_SEED);
+      // Re-seed RNG and reset start scheduling for determinism
+      ctx.rng = createRNG(ctx.state.seed);
+      ctx.nextStartAt = Date.now();
+      ctx.agentCounter = 0;
       debugLog('worker', 'intent:set_seed', { seed: ctx.state.seed });
       postSnapshot(ctx);
       return;

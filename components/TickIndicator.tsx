@@ -5,6 +5,7 @@ import { createSimBridge, type SimBridge } from '@/lib/simBridge';
 import { attachBridgeToStore } from '@/lib/bridgeToStore';
 import { appStore } from '@/lib/store';
 import { debugLog } from '@/lib/debug';
+import { isConnected, setExternalBridge } from '@/lib/simClient';
 
 export default function TickIndicator() {
   const [tick, setTick] = useState(0);
@@ -13,6 +14,17 @@ export default function TickIndicator() {
   const bridgeRef = useRef<SimBridge | null>(null);
 
   useEffect(() => {
+    // If a connection already exists, just subscribe
+    if (isConnected()) {
+      const unsub = appStore.subscribe((state) => {
+        setTick(state.lastTickId ?? 0);
+        setRunning(!!state.running);
+        debugLog('ui', 'state-update', { tick: state.lastTickId, running: state.running });
+      });
+      setWired(true);
+      return () => unsub?.();
+    }
+
     // Spin up worker and wire bridge on mount (only in browser)
     if (typeof window === 'undefined' || typeof Worker === 'undefined') {
       return; // SSR or non-browser test environment
@@ -36,6 +48,7 @@ export default function TickIndicator() {
     debugLog('ui', 'bridge-created');
     bridgeRef!.current = bridge;
     const link = attachBridgeToStore(bridge, appStore);
+    setExternalBridge(bridge, worker, link);
 
     // subscribe to lastTickId
     const unsub = appStore.subscribe((state) => {

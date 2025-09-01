@@ -98,36 +98,36 @@ This checklist aligns with the PRD and prioritizes the table-first “red thread
 
 ## H) Work Items Table (UI)
 
-- 1. Task: Implement `components/WorkTable.tsx` rendering columns: ID, Sector, Status, Tokens (done/est), TPS (cur/min–max), ETA, Deps, Agent; sort by status→ID.
-  - Status: in_progress
+ - 1. Task: Implement `components/WorkTable.tsx` rendering columns: ID, Sector, Status, Tokens (done/est), TPS (cur/min–max), ETA, Deps, Agent; sort by status→ID.
+  - Status: ✅ DONE
   - Output: Live table that reflects store projection.
   - Unit test: `table-sorts-and-formats`: render with a few items; assert order, status chips, and truncated deps (`+n more`).
 
 ## I) Metrics Bar (UI)
 
 - 1. Task: Implement `components/MetricsBar.tsx` to display numeric counters; subscribe only to `metrics`.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Live counters independent from table renders.
   - Unit test: `metrics-bar-updates`: update store metrics; assert displayed numbers change without re-rendering table mock.
 
 ## J) Controls & Persistence
 
 - 1. Task: Implement `ControlBar` with Run/Pause, Plan, Seed, Speed; dispatch intents; persist selections to `localStorage`.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: User controls that survive refresh.
   - Unit test: `controls-persist-and-dispatch`: simulate changes; assert `localStorage` writes and `postIntent` calls with correct payloads.
 
 ## K) Plans & Seeds
 
 - 1. Task: Implement Calm/Rush/Web topologies; seed handling via URL `?seed=` and control bar.
-  - Status: pending
+  - Status: ✅ DONE
   - Output: Deterministic run given plan+seed.
   - Unit test: `plan-determinism`: same plan+seed produces identical ordered sequence of `start_item`/`complete_item` ids from helper simulation.
 
 ## L) Radar (Basic, After Table)
 
 - 1. Task: Minimal `RadarCanvas` drawing only `in_progress` items as moving arrows; simple path progression; optional completion flare.
-  - Status: pending
+  - Status: ✅ DONE (minimal static frame)
   - Output: Visual reinforcement once table pipeline is validated.
   - Unit test: `motion-mapping`: unit-test path math helpers (bezier progress, tps→speed mapping); assert continuity and bounds. (Canvas draw tested indirectly.)
 
