@@ -58,9 +58,9 @@ export default function WorkTable() {
   }, [items]);
 
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-2">Work Items</h2>
-      <div className="overflow-x-auto rounded-md border border-gray-800">
+    <div className="h-full min-h-0 flex flex-col">
+      <h2 className="text-lg font-semibold mb-2 px-1">Work Items</h2>
+      <div className="flex-1 min-h-0 overflow-auto no-scrollbar rounded-md border border-gray-800">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-800 text-gray-200">
             <tr>
