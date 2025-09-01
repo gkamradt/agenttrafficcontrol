@@ -23,9 +23,9 @@ describe('throttle-coalesces-updates', () => {
     const bridge = new FakeBridge();
     const store = createAppStore();
     let updates = 0;
-    const unsubStore = (store as any).subscribe(() => updates++);
+    const unsubStore = store.subscribe(() => updates++);
 
-    const { destroy } = attachBridgeToStore(bridge as any, store, { intervalMs: 20 });
+    const { destroy } = attachBridgeToStore(bridge, store, { intervalMs: 20 });
 
     // Emit a burst of ticks
     for (let i = 1; i <= 10; i++) {
@@ -46,7 +46,7 @@ describe('throttle-coalesces-updates', () => {
   it('applies snapshot immediately and resets aggregation', async () => {
     const bridge = new FakeBridge();
     const store = createAppStore();
-    const { destroy } = attachBridgeToStore(bridge as any, store, { intervalMs: 50 });
+    const { destroy } = attachBridgeToStore(bridge, store, { intervalMs: 50 });
 
     bridge.emit({ type: 'tick', tick_id: 1 });
     bridge.emit({
@@ -57,7 +57,7 @@ describe('throttle-coalesces-updates', () => {
         metrics: { active_agents: 0, total_tokens: 0, total_spend_usd: 0, live_tps: 0, live_spend_per_s: 0, completion_rate: 0 },
         seed: 's',
         running: true,
-      } as any,
+      },
     });
 
     // Next tick id lower than previous should still apply because snapshot reset

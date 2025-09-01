@@ -3,8 +3,8 @@ import { createSimBridge, type PortLike, type MessageEventLike, type SimMsg } fr
 
 class FakePort implements PortLike {
   private handlers = new Set<(e: MessageEventLike) => void>();
-  public sent: any[] = [];
-  postMessage(msg: any): void {
+  public sent: unknown[] = [];
+  postMessage(msg: unknown): void {
     this.sent.push(msg);
   }
   addEventListener(event: 'message', handler: (e: MessageEventLike) => void): void {
@@ -42,7 +42,7 @@ describe('simBridge', () => {
     bridge.subscribe((msg) => seen.push(msg));
 
     port.emit({ type: 'tick', tick_id: 2 });
-    port.emit({ type: 'snapshot', state: { items: {}, agents: {}, metrics: { active_agents: 0, total_tokens: 0, total_spend_usd: 0, live_tps: 0, live_spend_per_s: 0, completion_rate: 0 }, seed: 's', running: true } as any });
+    port.emit({ type: 'snapshot', state: { items: {}, agents: {}, metrics: { active_agents: 0, total_tokens: 0, total_spend_usd: 0, live_tps: 0, live_spend_per_s: 0, completion_rate: 0 }, seed: 's', running: true } });
     port.emit({ type: 'tick', tick_id: 1 }); // accepted after snapshot
 
     const ticks = seen.filter((m) => m.type === 'tick') as Extract<SimMsg, { type: 'tick' }>[];

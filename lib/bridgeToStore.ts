@@ -1,5 +1,6 @@
 import type { SimMsg } from './simBridge';
 import type { UIState } from './store';
+import type { WorkItem, Agent, ProjectMetrics } from './types';
 import { STORE_FLUSH_INTERVAL_MS } from './config';
 import { debugLog } from './debug';
 
@@ -21,13 +22,13 @@ export function attachBridgeToStore(
 ) {
   const interval = opts.intervalMs ?? STORE_FLUSH_INTERVAL_MS;
   let unsub: (() => void) | null = null;
-  let timer: any = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   // Aggregation state
   let latestTick = 0;
-  const itemMap = new Map<string, any>();
-  const agentMap = new Map<string, any>();
-  let metricsPatch: any | null = null;
+  const itemMap = new Map<string, Partial<WorkItem> & { id: string }>();
+  const agentMap = new Map<string, Partial<Agent> & { id: string }>();
+  let metricsPatch: Partial<ProjectMetrics> | null = null;
 
   const clearAgg = () => {
     latestTick = 0;
@@ -66,12 +67,12 @@ export function attachBridgeToStore(
       latestTick = msg.tick_id;
       if (msg.items) {
         for (const patch of msg.items) {
-          if (patch.id) itemMap.set(patch.id, { ...(itemMap.get(patch.id) ?? {}), ...patch });
+          if (patch.id) itemMap.set(patch.id, { ...(itemMap.get(patch.id) ?? {}), ...patch } as Partial<WorkItem> & { id: string });
         }
       }
       if (msg.agents) {
         for (const patch of msg.agents) {
-          if (patch.id) agentMap.set(patch.id, { ...(agentMap.get(patch.id) ?? {}), ...patch });
+          if (patch.id) agentMap.set(patch.id, { ...(agentMap.get(patch.id) ?? {}), ...patch } as Partial<Agent> & { id: string });
         }
       }
       if (msg.metrics) metricsPatch = { ...(metricsPatch ?? {}), ...msg.metrics };

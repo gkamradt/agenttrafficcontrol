@@ -26,9 +26,9 @@ export type SimIntent =
   | { type: 'request_snapshot' };
 
 // Minimal message event/port interfaces so we don't depend on DOM types in tests
-export interface MessageEventLike<T = any> { data: T }
+export interface MessageEventLike<T = unknown> { data: T }
 export interface PortLike {
-  postMessage: (msg: any) => void;
+  postMessage: (msg: unknown) => void;
   addEventListener: (event: 'message', handler: (e: MessageEventLike) => void) => void;
   removeEventListener: (event: 'message', handler: (e: MessageEventLike) => void) => void;
 }
@@ -49,7 +49,7 @@ export function createSimBridge(port: PortLike, opts: BridgeOptions = {}): SimBr
   let lastTickId = 0;
   const batchMs = opts.batchMs ?? BRIDGE_BATCH_MS;
   const queue: SimMsg[] = [];
-  let flushTimer: any = null;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
   const emit = (msg: SimMsg) => {
     for (const fn of subscribers) fn(msg);
@@ -65,7 +65,7 @@ export function createSimBridge(port: PortLike, opts: BridgeOptions = {}): SimBr
   };
 
   const flushNow = () => {
-    flushTimer && clearTimeout(flushTimer);
+    if (flushTimer) clearTimeout(flushTimer);
     flushTimer = null;
     debugLog('bridge', 'flush', { queued: queue.length });
     while (queue.length) {
@@ -100,7 +100,7 @@ export function createSimBridge(port: PortLike, opts: BridgeOptions = {}): SimBr
       // Snapshot should be delivered promptly; reset tick ordering
       lastTickId = 0;
     }
-    debugLog('bridge', 'queue', { type: msg.type, tick_id: (msg as any).tick_id, size: queue.length + 1 });
+    debugLog('bridge', 'queue', { type: msg.type, tick_id: msg.type === 'tick' ? msg.tick_id : undefined, size: queue.length + 1 });
     queue.push(msg);
     scheduleFlush();
   };

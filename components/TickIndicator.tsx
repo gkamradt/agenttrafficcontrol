@@ -21,10 +21,10 @@ export default function TickIndicator() {
     try {
       worker = new Worker(new URL('../workers/engine.ts', import.meta.url), { type: 'module' });
       debugLog('ui', 'worker-created');
-      worker.addEventListener('error', (e: any) => {
+      worker.addEventListener('error', (e: ErrorEvent) => {
         debugLog('ui', 'worker-error', { message: e?.message, filename: e?.filename, lineno: e?.lineno, colno: e?.colno });
       });
-      worker.addEventListener('message', (e: any) => {
+      worker.addEventListener('message', (e: MessageEvent) => {
         debugLog('ui', 'worker-native-message', e?.data);
       });
     } catch (e) {
@@ -35,10 +35,10 @@ export default function TickIndicator() {
     const bridge = createSimBridge(worker);
     debugLog('ui', 'bridge-created');
     bridgeRef!.current = bridge;
-    const link = attachBridgeToStore(bridge as any, appStore);
+    const link = attachBridgeToStore(bridge, appStore);
 
     // subscribe to lastTickId
-    const unsub = (appStore as any).subscribe((state: any) => {
+    const unsub = appStore.subscribe((state) => {
       setTick(state.lastTickId ?? 0);
       setRunning(!!state.running);
       debugLog('ui', 'state-update', { tick: state.lastTickId, running: state.running });
@@ -50,7 +50,7 @@ export default function TickIndicator() {
     return () => {
       unsub?.();
       link.destroy();
-      (bridge as any).destroy?.();
+      bridge.destroy?.();
       worker?.terminate();
     };
   }, []);
