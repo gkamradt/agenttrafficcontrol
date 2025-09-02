@@ -66,8 +66,7 @@ export default function WorkTable() {
                 borderCollapse: 'separate',
                 borderSpacing: '4px',
                 backgroundColor: '#000',
-              }}     
-        >
+              }}>
           <colgroup>
             <col style={{ width: 50 }} />          {/* AGENT */}
             <col style={{ width: 40 }} />          {/* ID */}
@@ -83,7 +82,7 @@ export default function WorkTable() {
               <th className="px-1 py-2 text-left border-b-1">AGENT</th>
               <th className="px-1 py-2 text-left border-b-1">SECTOR</th>
               <th className="px-1 py-2 text-left border-b-1">WORK ORDER</th>
-              <th className="px-1 py-2 text-left border-b-1">TOK.</th>
+              <th className="px-1 py-2 text-left border-b-1">TOKENS</th>
               <th className="px-1 py-2 text-left border-b-1">TPS</th>
               <th className="px-1 py-2 text-left border-b-1">ETA</th>
             </tr>

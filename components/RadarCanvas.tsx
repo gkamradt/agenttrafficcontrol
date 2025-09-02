@@ -163,7 +163,6 @@ export default function RadarCanvas() {
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      <h2 className="text-lg font-semibold mb-2 px-1">Radar</h2>
       <div className="flex-1 min-h-0 border border-gray-800 bg-black">
         <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>

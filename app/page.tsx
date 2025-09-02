@@ -1,17 +1,17 @@
 import WorkTable from '../components/WorkTable';
-import MetricsBar from '../components/MetricsBar';
 import ControlBar from '../components/ControlBar';
 import RadarCanvas from '../components/RadarCanvas';
 import ProjectIdDisplay from '../components/ProjectIdDisplay';
 import ProjectDescription from '../components/ProjectDescription';
 import OperatorGroups from '../components/OperatorGroups';
+import TopOverview from '../components/TopOverview';
 
 export default function Home() {
   return (
     <div className="h-screen overflow-hidden bg-black text-white flex flex-col">
       {/* Header */}
       <header className="p-4">
-        <h1 className="text-2xl font-bold text-gray-500">Agent Traffic Control</h1>
+        <h1 className="text-2xl tracking-tighter font-bold text-gray-500 text-spacing-px">Agent Traffic Control</h1>
       </header>
 
       {/* Controls row */}
@@ -62,21 +62,29 @@ export default function Home() {
           {/* RIGHT COLUMN: rows -> [Top (1fr, matches left Monitoring row), Radar area (7fr), Master Control Panel (auto)] */}
           <aside className="h-full min-h-0 overflow-hidden grid grid-rows-[1fr_7fr_auto] gap-3">
             {/* Top row (same height as Monitoring row). Keep MetricsBar here. */}
-            <div className="min-h-0 overflow-hidden border border-gray-800 bg-black">
-              <MetricsBar />
+            <div className="min-h-0 overflow-hidden bg-black">
+              <TopOverview />
             </div>
 
-            {/* Radar area split into two subcolumns: [10% Global Queue | 90% Radar] */}
-            <div className="min-h-0 overflow-hidden grid grid-cols-[10%_90%] gap-3">
-              {/* Global Queue (thin left column) */}
-              <div className="border border-gray-800 bg-black flex items-center justify-center">
-                <div className="text-xs text-gray-300">
-                  Global Queue
+            {/* Radar row with Global Q header and 10%/90% split below */}
+            <div className="min-h-0 overflow-hidden flex flex-col border border-[#352b19ff]">
+              {/* Full-width header bar with yellow tab, like Monitoring */}
+              <div className="flex items-center" style={{ backgroundColor: '#130f04ff' }}>
+                <div style={{ width: '8%', backgroundColor: '#c79325' }}>
+                  <h2 className="pl-2 pr-2 font-bold text-black">GLOBAL QUEUE</h2>
                 </div>
               </div>
-              {/* Radar (right, main) */}
-              <div className="min-h-0 overflow-hidden">
-                <RadarCanvas />
+              {/* Two-column area: 10% ActionItems | 90% Radar */}
+              <div className="min-h-0 overflow-hidden grid" style={{ gridTemplateColumns: '8% 92%' }}>
+                {/* ActionItems (left) */}
+                <div className="border-r border-[#352b19ff] bg-black p-2">
+                  <div className="text-xs text-gray-300">ActionItems</div>
+                  {/* Future content for actions can go here */}
+                </div>
+                {/* Radar (right) */}
+                <div className="min-h-0 overflow-hidden bg-black">
+                  <RadarCanvas />
+                </div>
               </div>
             </div>
 
