@@ -13,13 +13,13 @@ export const TRAIL_DECAY = 0.08; // alpha per frame on motion buffer
 export const RING_COUNT = 5;
 
 // Sectors and colors
-export const SECTORS = ['Planning', 'Build', 'Eval', 'Deploy'] as const;
+export const SECTORS = ['PLANNING', 'BUILD', 'EVAL', 'DEPLOY'] as const;
 export type Sector = typeof SECTORS[number];
 export const SECTOR_COLORS: Record<Sector, string> = {
-  Planning: '#6EE7B7',
-  Build: '#93C5FD',
-  Eval: '#FCA5A5',
-  Deploy: '#FDE68A',
+  PLANNING: '#6EE7B7',
+  BUILD: '#93C5FD',
+  EVAL: '#FCA5A5',
+  DEPLOY: '#FDE68A',
 };
 
 // Keep stub flag to satisfy existing import smoke test

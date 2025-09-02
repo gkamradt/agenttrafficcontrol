@@ -34,8 +34,8 @@ export default function RadarCanvas() {
     function drawStatic(w: number, h: number) {
       if (!canvas || !ctx) return;
       ctx.clearRect(0, 0, w, h);
-      // background
-      ctx.fillStyle = '#0b0f14';
+      // background (full black)
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, w, h);
 
       // center + radius
@@ -81,12 +81,36 @@ export default function RadarCanvas() {
       const rng = createRNG(agentId);
       return rng.next() * Math.PI * 2;
     }
+    // Per-agent fading trail dots emitted at the agent's position.
+    type TrailDot = { x: number; y: number; created: number };
+    const trails = new Map<string, { dots: TrailDot[]; lastEmit: number }>();
+    const EMIT_INTERVAL_MS = 500; // drop a dot every ~120ms
+    const MAX_DOTS = 10;           // keep up to 3 dots per agent
+    const LIFESPAN_MS = 5900;      // each dot fades out over ~0.9s
     function drawAgents() {
       // Guard against missing context (TS + runtime safety)
       if (!canvas || !ctx) return;
       // Redraw static each frame (simple MVP approach)
       drawStatic(wCss, hCss);
       const state = appStore.getState();
+      const now = Date.now();
+
+      // Draw and update trails before drawing agents so agents sit on top
+      for (const [agentId, trail] of trails) {
+        // purge expired
+        trail.dots = trail.dots.filter(d => now - d.created <= LIFESPAN_MS);
+        for (const d of trail.dots) {
+          const age = now - d.created;
+          const t = Math.max(0, Math.min(1, age / LIFESPAN_MS));
+          const alpha = (1 - t) * 0.9; // start opaque, fade to 0
+          const radius = Math.max(1.5, 3 - t * 1.5);
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(147,197,253,${alpha.toFixed(3)})`;
+          ctx.fill();
+        }
+        if (trail.dots.length === 0) trails.delete(agentId);
+      }
       for (const agent of Object.values(state.agents)) {
         const item = state.items[agent.work_item_id];
         if (!item || item.status !== 'in_progress') continue;
@@ -105,6 +129,15 @@ export default function RadarCanvas() {
         const dir = Math.atan2(cy - y, cx - x);
         const len = Math.max(8, Math.min(14, r * 0.05));
         const width = Math.max(5, Math.min(9, r * 0.03));
+
+        // Emit a new dot at the agent's current position; dots stay static and fade
+        let trail = trails.get(agent.id);
+        if (!trail) { trail = { dots: [], lastEmit: 0 }; trails.set(agent.id, trail); }
+        if (now - trail.lastEmit >= EMIT_INTERVAL_MS) {
+          trail.dots.push({ x, y, created: now });
+          trail.lastEmit = now;
+          if (trail.dots.length > MAX_DOTS) trail.dots.splice(0, trail.dots.length - MAX_DOTS);
+        }
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(dir);
@@ -131,7 +164,7 @@ export default function RadarCanvas() {
   return (
     <div className="h-full min-h-0 flex flex-col">
       <h2 className="text-lg font-semibold mb-2 px-1">Radar</h2>
-      <div className="flex-1 min-h-0 rounded-md border border-gray-800 bg-gray-900">
+      <div className="flex-1 min-h-0 border border-gray-800 bg-black">
         <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
     </div>

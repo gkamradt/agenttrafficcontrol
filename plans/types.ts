@@ -9,11 +9,19 @@ export interface PlanItemSpec {
   estimate_ms: number;   // target duration in ms
   tps_min: number;       // lower bound tokens/sec
   tps_max: number;       // upper bound tokens/sec
+  // Optional work-order description: human text of what's being done
+  work_desc?: string;
 }
 
 export interface PlanDefinition {
   name: string;
   description?: string;
   items: PlanItemSpec[];
+  groups?: WorkGroupDef[]; // optional grouping metadata for items
 }
 
+export interface WorkGroupDef {
+  id: string;          // e.g., 'P', 'B', 'E', 'D'
+  title: string;       // human title for the group
+  description: string; // human description for the group
+}

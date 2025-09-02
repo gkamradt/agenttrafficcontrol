@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,6 +11,24 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Local font: Source Code Pro Regular (applied globally via Tailwind token mapping)
+const sourceCodePro = localFont({
+  src: [
+    {
+      path: "../public/fonts/source-code-pro/SourceCodePro-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/source-code-pro/SourceCodePro-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-source-code-pro",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${sourceCodePro.variable} antialiased font-sans`}
       >
         {children}
       </body>

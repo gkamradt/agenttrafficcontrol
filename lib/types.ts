@@ -7,6 +7,7 @@ export interface WorkItem {
   group: string;         // 'A', 'B', ... (for grouping/legend)
   sector: string;        // e.g., 'Planning', 'Build', 'Eval', 'Deploy'
   depends_on: string[];  // list of WorkItem ids
+  desc?: string;         // optional human-friendly work order description
 
   estimate_ms: number;   // target duration for this item (ms)
   started_at?: number;   // epoch ms when entered in_progress

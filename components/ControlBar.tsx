@@ -51,7 +51,7 @@ export default function ControlBar() {
       <select
         value={plan}
         onChange={(e) => setPlan(e.target.value)}
-        className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100"
+        className="bg-black border border-gray-700 px-2 py-1 text-sm text-gray-100"
       >
         {plans.map((p) => (
           <option key={p} value={p}>{p}</option>
@@ -64,19 +64,19 @@ export default function ControlBar() {
           postIntent({ type: 'set_running', running: true });
           postIntent({ type: 'request_snapshot' });
         }}
-        className="text-xs rounded px-2 py-1 border border-gray-600 text-gray-200"
+        className="text-xs px-2 py-1 border border-gray-600 text-gray-200"
       >Apply Plan</button>
 
       <label className="text-sm text-gray-300 ml-2">Seed</label>
       <input
         value={seed}
         onChange={(e) => setSeed(e.target.value)}
-        className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100 w-28"
+        className="bg-black border border-gray-700 px-2 py-1 text-sm text-gray-100 w-28"
         placeholder="auto"
       />
       <button
         onClick={() => { postIntent({ type: 'set_seed', seed }); postIntent({ type: 'request_snapshot' }); }}
-        className="text-xs rounded px-2 py-1 border border-gray-600 text-gray-200"
+        className="text-xs px-2 py-1 border border-gray-600 text-gray-200"
       >Apply Seed</button>
 
       <label className="text-sm text-gray-300 ml-2">Speed</label>
@@ -84,7 +84,7 @@ export default function ControlBar() {
         {[1,2,3].map((x) => (
           <button key={x}
             onClick={() => { setSpeed(x); postIntent({ type: 'set_speed', speed: x }); }}
-            className={`text-xs rounded px-2 py-1 border ${speed===x ? 'border-blue-500 text-blue-200' : 'border-gray-600 text-gray-200'}`}
+            className={`text-xs px-2 py-1 border ${speed===x ? 'border-blue-500 text-blue-200' : 'border-gray-600 text-gray-200'}`}
           >×{x}</button>
         ))}
       </div>

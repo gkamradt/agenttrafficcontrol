@@ -12,6 +12,7 @@ export function buildItemsFromPlan(plan: PlanDefinition): Record<string, WorkIte
       group: p.group,
       sector: p.sector,
       depends_on: [...p.depends_on],
+      desc: p.work_desc,
       estimate_ms: p.estimate_ms,
       started_at: undefined,
       eta_ms: p.estimate_ms,

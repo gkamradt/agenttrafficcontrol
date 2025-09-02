@@ -70,9 +70,9 @@ export default function TickIndicator() {
 
   return (
     <div className="p-4">
-      <div className="inline-flex items-center gap-3 rounded-md bg-gray-800 px-3 py-2">
+      <div className="inline-flex items-center gap-3 bg-black border border-gray-700 px-3 py-2">
         <span className="text-sm text-gray-300">Engine</span>
-        <span className="text-xs rounded bg-gray-700 px-2 py-1 text-gray-200">{wired ? 'connected' : 'connecting...'}</span>
+        <span className="text-xs bg-gray-700 px-2 py-1 text-gray-200">{wired ? 'connected' : 'connecting...'}</span>
         <span className="text-sm font-mono">Tick: {tick}</span>
         <button
           onClick={() => {
@@ -83,7 +83,7 @@ export default function TickIndicator() {
             // Nudge a snapshot to ensure fast UI sync if batching delays it
             bridgeRef.current?.postIntent({ type: 'request_snapshot' });
           }}
-          className={`text-xs rounded px-2 py-1 border ${running ? 'bg-green-700/30 border-green-600 text-green-200' : 'bg-red-700/30 border-red-600 text-red-200'}`}
+          className={`text-xs px-2 py-1 border ${running ? 'bg-green-700/30 border-green-600 text-green-200' : 'bg-red-700/30 border-red-600 text-red-200'}`}
         >
           {running ? 'Pause' : 'Run'}
         </button>

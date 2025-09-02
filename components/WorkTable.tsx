@@ -13,11 +13,11 @@ function useAppSelector<T>(selector: (s: UIState) => T): T {
 }
 
 const statusOrder: Record<string, number> = {
-  queued: 0,
+  in_progress: 0,
+  queued: 1,
   assigned: 1,
-  in_progress: 2,
-  blocked: 3,
-  done: 4,
+  blocked: 1,
+  done: 2,
 };
 
 function fmtInt(n: number | undefined | null) {
@@ -25,11 +25,9 @@ function fmtInt(n: number | undefined | null) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v);
 }
 
-function fmtTPS(cur?: number, min?: number, max?: number) {
+function fmtTPS(cur?: number) {
   const c = typeof cur === 'number' && isFinite(cur) ? cur : 0;
-  const mi = typeof min === 'number' && isFinite(min) ? min : 0;
-  const ma = typeof max === 'number' && isFinite(max) ? max : 0;
-  return `${c.toFixed(1)} / ${fmtInt(mi)}–${fmtInt(ma)}`;
+  return `${c.toFixed(1)}`;
 }
 
 function fmtETA(ms?: number) {
@@ -59,56 +57,70 @@ export default function WorkTable() {
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      <h2 className="text-lg font-semibold mb-2 px-1">Work Items</h2>
-      <div className="flex-1 min-h-0 overflow-auto no-scrollbar rounded-md border border-gray-800">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-800 text-gray-200">
+      <div className="flex-1 min-h-0 overflow-auto no-scrollbar border border-[#352b19ff] border-t-0">
+        <table
+              className="min-w-full text-sm"
+              style={{
+                tableLayout: 'fixed',
+                width: '100%',
+                borderCollapse: 'separate',
+                borderSpacing: '4px',
+                backgroundColor: '#000',
+              }}     
+        >
+          <colgroup>
+            <col style={{ width: 50 }} />          {/* AGENT */}
+            <col style={{ width: 40 }} />          {/* ID */}
+            <col style={{ width: 70 }} />         {/* SECTOR */}
+            <col style={{ width: 120 }} />      {/* WORK ORDER (flexes) */}
+            <col style={{ width: 40 }} />         {/* TOKENS */}
+            <col style={{ width: 40 }} />          {/* TPS */}
+            <col style={{ width: 50 }} />         {/* ETA */}
+          </colgroup>
+          <thead className="text-[#d79326ff]">
             <tr>
-              <th className="px-3 py-2 text-left">ID</th>
-              <th className="px-3 py-2 text-left">Sector</th>
-              <th className="px-3 py-2 text-left">Status</th>
-              <th className="px-3 py-2 text-left">Tokens</th>
-              <th className="px-3 py-2 text-left">TPS</th>
-              <th className="px-3 py-2 text-left">ETA</th>
-              <th className="px-3 py-2 text-left">Deps</th>
-              <th className="px-3 py-2 text-left">Agent</th>
+              <th className="px-1 py-2 text-left border-b-1">ID</th>
+              <th className="px-1 py-2 text-left border-b-1">AGENT</th>
+              <th className="px-1 py-2 text-left border-b-1">SECTOR</th>
+              <th className="px-1 py-2 text-left border-b-1">WORK ORDER</th>
+              <th className="px-1 py-2 text-left border-b-1">TOK.</th>
+              <th className="px-1 py-2 text-left border-b-1">TPS</th>
+              <th className="px-1 py-2 text-left border-b-1">ETA</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((it) => {
-              const deps = it.depends_on;
-              const shown = deps.slice(0, 3);
-              const more = deps.length - shown.length;
+              const rowCls =
+                it.status === 'done' ? 'tr-status-done' :
+                it.status === 'in_progress' ? 'tr-status-inprogress' :
+                'tr-status-queued';
               return (
-                <tr key={it.id} className="odd:bg-gray-900 even:bg-gray-950">
-                  <td className="px-3 py-2 font-mono">{it.id}</td>
-                  <td className="px-3 py-2">{it.sector}</td>
-                  <td className="px-3 py-2">
-                    <span className="inline-block rounded px-2 py-0.5 text-xs bg-gray-800 text-gray-200">
-                      {it.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-200">
-                    {fmtInt(it.tokens_done)} / {fmtInt(it.est_tokens)}
-                  </td>
-                  <td className="px-3 py-2 text-gray-300">
-                    {fmtTPS(it.tps, it.tps_min, it.tps_max)}
-                  </td>
-                  <td className="px-3 py-2 text-gray-200">
-                    {fmtETA(it.eta_ms)}
-                  </td>
-                  <td className="px-3 py-2 text-gray-300">
-                    {shown.join(', ')}{more > 0 ? ` +${more} more` : ''}
-                  </td>
-                  <td className="px-3 py-2 text-gray-300 font-mono">
+                <tr key={it.id} className={`${rowCls}`}>
+                  <td className="px-2 py-1 font-mono" style={{ backgroundColor: 'inherit', borderLeft: '4px solid currentColor' }}>{it.id}</td>
+                  <td
+                    className="px-2 py-1 font-mono"
+                  >
                     {it.agent_id ?? '—'}
+                  </td>
+                  <td className="px-2 py-1" style={{ backgroundColor: 'inherit' }}>{it.sector}</td>
+                  <td className="px-2 py-1" style={{ backgroundColor: 'inherit', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.desc || ''}>
+                    {it.desc || '—'}
+                  </td>
+                  <td className="px-2 py-1" style={{ backgroundColor: 'inherit' }}>
+                    {fmtInt(it.tokens_done)}
+                  </td>
+                  <td className="px-2 py-1" style={{ backgroundColor: 'inherit' }}>
+                    {fmtTPS(it.tps)}
+                  </td>
+                  <td className="px-2 py-1" style={{ backgroundColor: 'inherit' }}>
+                    {fmtETA(it.eta_ms)}
                   </td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-3 py-3 text-gray-400">No items loaded yet.</td>
+              <tr className="pt-2">
+                <td colSpan={7} className="px-3 py-3 text-gray-400">No items loaded yet.</td>
               </tr>
             )}
           </tbody>
