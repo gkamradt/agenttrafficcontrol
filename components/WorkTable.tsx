@@ -68,13 +68,20 @@ export default function WorkTable() {
                 backgroundColor: '#000',
               }}>
           <colgroup>
-            <col style={{ width: 50 }} />          {/* AGENT */}
-            <col style={{ width: 40 }} />          {/* ID */}
-            <col style={{ width: 70 }} />         {/* SECTOR */}
-            <col style={{ width: 120 }} />      {/* WORK ORDER (flexes) */}
-            <col style={{ width: 40 }} />         {/* TOKENS */}
-            <col style={{ width: 40 }} />          {/* TPS */}
-            <col style={{ width: 50 }} />         {/* ETA */}
+            {/* AGENT */}
+            <col style={{ width: 30 }} />
+            {/* ID */}
+            <col style={{ width: 35 }} />
+            {/* SECTOR */}
+            <col style={{ width: 50 }} />
+            {/* WORK ORDER (flexes) */}
+            <col style={{ width: 225 }} />
+            {/* TOKENS */}
+            <col style={{ width: 40 }} />
+            {/* TPS */}
+            <col style={{ width: 40 }} />
+            {/* ETA */}
+            <col style={{ width: 50 }} />
           </colgroup>
           <thead className="text-[#d79326ff]">
             <tr>

@@ -3,6 +3,8 @@
 :root {
   --background: #000000; /* Force full black */
   --foreground: #ededed;
+  /* Global theme colors */
+  --green-bright: #57ff7a;
   /* UI label variables (used for small section titles/badges) */
   --ui-label-font-size: 0.8rem; /* ~10px, about half of text-lg */
   --ui-label-line-height: 1.15;
@@ -17,16 +19,16 @@
   --row-done-fg: #047f54ff;        /* emerald-200 */
   --row-inprog-bg: #212107ff;      /* amber-900 */
   --row-inprog-fg: #9aa40aff;      /* amber-300 */
-  --row-queued-bg: #1e3a8a;      /* blue-800 */
-  --row-queued-fg: #bfdbfe;      /* blue-200 */
+  --row-queued-bg: #0e1d46;      /* blue-800 */
+  --row-queued-fg: #8aa9cf;      /* blue-200 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   /* Map Tailwind font tokens to Source Code Pro */
-  --font-sans: var(--font-source-code-pro);
-  --font-mono: var(--font-source-code-pro);
+  --font-sans: var(--font-jet-brains-mono);
+  --font-mono: var(--font-jet-brains-mono);
 }
 
 @media (prefers-color-scheme: dark) {

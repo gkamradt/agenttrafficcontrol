@@ -60,7 +60,7 @@ export default function TopOverview() {
     >
       {/* Main Metrics card */}
       <div style={{ background: '#000' }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">Main Metrics</div>
+        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">MAIN METRICS</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, color: '#cfcfcf', padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="text-md" style={{ color: '#a0a0a0'}}>ACTIVE AGENTS</div>
@@ -79,7 +79,7 @@ export default function TopOverview() {
 
       {/* Live Throughput card */}
       <div style={{ background: '#000' }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">Live Throughput</div>
+        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">LIVE THROUGHPUT</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, color: '#cfcfcf', padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="text-md" style={{ color: '#a0a0a0'}}>TOKENS / SEC</div>
@@ -94,7 +94,7 @@ export default function TopOverview() {
 
       {/* Project Completion Rate card */}
       <div style={{ background: '#000', display: 'flex', flexDirection: 'column' }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">Project Completion Rate</div>
+        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">PROJECT COMPLETION RATE</div>
         <div style={{ padding: '8px' }}>
           <Chart points={points} containerRef={containerRef} />
         </div>

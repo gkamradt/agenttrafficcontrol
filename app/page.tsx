@@ -1,6 +1,7 @@
 import WorkTable from '../components/WorkTable';
 import ControlBar from '../components/ControlBar';
 import RadarCanvas from '../components/RadarCanvas';
+import GlobalQueue from '../components/GlobalQueue';
 import ProjectIdDisplay from '../components/ProjectIdDisplay';
 import ProjectDescription from '../components/ProjectDescription';
 import OperatorGroups from '../components/OperatorGroups';
@@ -11,7 +12,7 @@ export default function Home() {
     <div className="h-screen overflow-hidden bg-black text-white flex flex-col">
       {/* Header */}
       <header className="p-4">
-        <h1 className="text-2xl tracking-tighter font-bold text-gray-500 text-spacing-px">Agent Traffic Control</h1>
+        <h1 className="text-2xl tracking-tighter font-bold text-gray-500 text-spacing-px">AGENT TRAFFIC CONTROL</h1>
       </header>
 
       {/* Controls row */}
@@ -19,7 +20,7 @@ export default function Home() {
 
       {/* Main two-column layout */}
       <main className="flex-1 overflow-hidden p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-4 h-full min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4 h-full min-h-0">
           {/* LEFT COLUMN: 3 rows -> [Monitoring (auto), Operator Actions (auto), Work/Agent table (1fr = remaining space)] */}
           <section className="min-h-0 overflow-hidden grid grid-rows-[auto_auto_1fr]">
             {/* Monitoring table (top) with three internal rows */}
@@ -48,7 +49,7 @@ export default function Home() {
               <div className="flex items-center border-b-3 border-[#352b19ff]">
                 <h2 className="text-lg text-[#d79326ff] pl-2 pr-2">OPERATOR ACTION ITEMS</h2>
               </div>
-              <div className="flex-1 min-h-0 overflow-auto p-2">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <OperatorGroups />
               </div>
             </div>
@@ -67,7 +68,7 @@ export default function Home() {
             </div>
 
             {/* Radar row with Global Q header and 10%/90% split below */}
-            <div className="min-h-0 overflow-hidden flex flex-col border border-[#352b19ff]">
+            <div className="min-h-0 overflow-hidden flex flex-col">
               {/* Full-width header bar with yellow tab, like Monitoring */}
               <div className="flex items-center" style={{ backgroundColor: '#130f04ff' }}>
                 <div style={{ width: '8%', backgroundColor: '#c79325' }}>
@@ -76,21 +77,22 @@ export default function Home() {
               </div>
               {/* Two-column area: 10% ActionItems | 90% Radar */}
               <div className="min-h-0 overflow-hidden grid" style={{ gridTemplateColumns: '8% 92%' }}>
-                {/* ActionItems (left) */}
-                <div className="border-r border-[#352b19ff] bg-black p-2">
-                  <div className="text-xs text-gray-300">ActionItems</div>
-                  {/* Future content for actions can go here */}
+                {/* Global Queue (left, full radar height) */}
+                <div className="border-r border-[#352b19ff] bg-black min-h-0 overflow-hidden">
+                  <GlobalQueue />
                 </div>
                 {/* Radar (right) */}
                 <div className="min-h-0 overflow-hidden bg-black">
-                  <RadarCanvas />
+                  <RadarCanvas message="" />
                 </div>
               </div>
             </div>
 
             {/* Master Control Panel (bottom) */}
             <div className="mt-1">
-              <h2 className="text-lg font-semibold mb-2 px-1">Master Control Panel</h2>
+              <div className="flex items-center bg-[#130f04ff]">
+                <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">MASTER CONTROL PANEL</h2>
+              </div>
               <div className="border border-gray-800 bg-black">
                 <ControlBar />
               </div>
