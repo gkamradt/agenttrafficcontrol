@@ -6,6 +6,7 @@ import ProjectIdDisplay from '../components/ProjectIdDisplay';
 import ProjectDescription from '../components/ProjectDescription';
 import OperatorGroups from '../components/OperatorGroups';
 import TopOverview from '../components/TopOverview';
+import TimelineStatusBar from '../components/TimelineStatusBar';
 
 export default function Home() {
   return (
@@ -60,7 +61,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* RIGHT COLUMN: rows -> [Top (1fr, matches left Monitoring row), Radar area (7fr), Master Control Panel (auto)] */}
+          {/* RIGHT COLUMN: rows -> [Top (1fr), Radar area (7fr), Master Control Panel (auto)] */}
           <aside className="h-full min-h-0 overflow-hidden grid grid-rows-[1fr_7fr_auto] gap-3">
             {/* Top row (same height as Monitoring row). Keep MetricsBar here. */}
             <div className="min-h-0 overflow-hidden bg-black">
@@ -94,6 +95,9 @@ export default function Home() {
                 <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">MASTER CONTROL PANEL</h2>
               </div>
               <div className="border border-gray-800 bg-black">
+                <div className="px-2 pt-2">
+                  <TimelineStatusBar />
+                </div>
                 <ControlBar />
               </div>
             </div>

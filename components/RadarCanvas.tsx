@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { RING_COUNT } from '@/lib/constants';
+import { RING_COUNT, RADAR_CURVE_AMOUNT, RADAR_MAX_TURNS, RADAR_WOBBLE, RADAR_PULSE_DURATION_MS, RADAR_PULSE_MAX_RADIUS, RADAR_PULSE_WIDTH, RADAR_PULSE_SECONDARY, RADAR_REFRESH_HZ } from '@/lib/constants';
 import { appStore } from '@/lib/store';
 import { createRNG } from '@/lib/rng';
 
@@ -155,7 +155,15 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
       ctx.fillText(text, bx + padX, by + padY + th - 6);
     }
 
+    // Track previous status per item to detect transitions to 'done'
+    const prevItemStatus = new Map<string, string>();
+    
     resize();
+    // Initialize previous statuses to avoid pulsing existing done items on mount
+    {
+      const init = appStore.getState();
+      for (const it of Object.values(init.items)) prevItemStatus.set(it.id, it.status);
+    }
     let obs: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
       obs = new ResizeObserver(resize);
@@ -163,11 +171,59 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
     } else {
       window.addEventListener('resize', resize);
     }
-    // Simple animation loop to draw in-progress agents
+    // Simple animation loop to draw in-progress agents (throttled to RADAR_REFRESH_HZ)
     let rafId: number | null = null;
+    const intervalMs = Math.max(1, Math.floor(1000 / Math.max(1, RADAR_REFRESH_HZ)));
+    let lastDrawAt = 0;
     function angleForAgent(agentId: string) {
-      const rng = createRNG(agentId);
+      // Base starting angle, deterministic per agent
+      const rng = createRNG(agentId + ':angle');
       return rng.next() * Math.PI * 2;
+    }
+
+    // Smooth easing for spiral growth
+    function easeInOutSine(t: number) {
+      return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, t)));
+    }
+
+    // Compute a curved angle offset for an agent at progress t in [0,1]
+    function curvedAngleOffset(agentId: string, t: number) {
+      const k = Math.max(0, Math.min(1, RADAR_CURVE_AMOUNT));
+      if (k <= 0) return 0;
+      const rng = createRNG(agentId + ':curve');
+      const spiralDir = rng.bool() ? 1 : -1; // clockwise vs counter-clockwise
+      // Random wobble frequencies and phases (few direction changes only)
+      const f1 = rng.float(0.6, 1.6); // cycles over [0..1]
+      const f2 = rng.float(1.2, 2.4);
+      const p1 = rng.float(0, Math.PI * 2);
+      const p2 = rng.float(0, Math.PI * 2);
+      const maxSpin = (RADAR_MAX_TURNS * 2 * Math.PI) || (0.5 * 2 * Math.PI);
+      const e = easeInOutSine(t);
+      // Allocate some of the curve budget to monotone spiral, some to wobble
+      const wobblePortion = Math.max(0, Math.min(1, RADAR_WOBBLE));
+      const spiralPortion = 1 - wobblePortion;
+      const spiral = spiralDir * (k * spiralPortion) * maxSpin * e;
+      const wobbleAmp = (k * wobblePortion) * maxSpin * 0.6; // keep wobble within 60% of budget
+      // Wobble can change directions; envelope keeps it smooth
+      const wobble = wobbleAmp * (
+        Math.sin(2 * Math.PI * f1 * t + p1) * 0.7 +
+        Math.sin(2 * Math.PI * f2 * t + p2) * 0.3
+      ) * (0.85 + 0.15 * e);
+      let s = spiral + wobble;
+      // Never exceed the half-rotation cap
+      if (s > maxSpin) s = maxSpin;
+      if (s < -maxSpin) s = -maxSpin;
+      return s;
+    }
+
+    // Position on curved path at progress t in [0,1]
+    function pathPoint(agentId: string, t: number) {
+      const theta0 = angleForAgent(agentId);
+      const theta = theta0 + curvedAngleOffset(agentId, t);
+      const rad = r * (1 - t);
+      const x = cx + Math.cos(theta) * rad;
+      const y = cy + Math.sin(theta) * rad;
+      return { x, y, theta, rad };
     }
     // Per-agent trailing stroke segments emitted at the agent's position.
     type TrailSeg = { x: number; y: number; dir: number; created: number };
@@ -179,7 +235,20 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
     
     const MAX_SEGS = 60;           // cap per-agent segments
     const LIFESPAN_MS = 2000;      // ms before a stroke fades out fully
+
+    // Center pulses when agents complete
+    type Pulse = { created: number };
+    const pulses: Pulse[] = [];
+    // Track items we've already emitted a pulse for (by item id)
+    const pulsedItems = new Set<string>();
     function drawAgents() {
+      // Throttle by desired refresh rate
+      const nowPerf = performance.now();
+      if (nowPerf - lastDrawAt < intervalMs) {
+        rafId = window.requestAnimationFrame(drawAgents);
+        return;
+      }
+      lastDrawAt = nowPerf;
       // Guard against missing context (TS + runtime safety)
       if (!canvas || !ctx) return;
       // Redraw static each frame (simple MVP approach)
@@ -256,6 +325,16 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
         c.textAlign = 'start';
       }
 
+      // Detect newly completed items (status transition to 'done') and pulse once
+      for (const it of Object.values(state.items)) {
+        const prev = prevItemStatus.get(it.id);
+        if (prev !== 'done' && it.status === 'done' && !pulsedItems.has(it.id)) {
+          pulses.push({ created: now });
+          pulsedItems.add(it.id);
+        }
+        prevItemStatus.set(it.id, it.status);
+      }
+
       // Draw and update trailing strokes before drawing arrows so arrows sit on top
       for (const [agentId, trail] of trails) {
         // purge expired
@@ -291,11 +370,19 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
           const elapsed = Date.now() - item.started_at;
           t = Math.max(0, Math.min(1, elapsed / est));
         }
-        const theta = angleForAgent(agent.id);
-        const rad = r * (1 - t);
-        const x = cx + Math.cos(theta) * rad;
-        const y = cy + Math.sin(theta) * rad;
-        const dir = Math.atan2(cy - y, cx - x);
+        // Position along the curved path
+        const { x, y } = pathPoint(agent.id, t);
+        // Heading tangent to the path using a small finite difference
+        const eps = 0.002;
+        const t0 = Math.max(0, Math.min(1, t - eps));
+        const t1 = Math.max(0, Math.min(1, t + eps));
+        const p0 = pathPoint(agent.id, t0);
+        const p1 = pathPoint(agent.id, t1);
+        let dir = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+        if (!isFinite(dir)) {
+          // Fallback towards center if derivative is degenerate
+          dir = Math.atan2(cy - y, cx - x);
+        }
         const len = ARROW_SIZE * Math.max(8, Math.min(14, r * 0.05));
         const width = ARROW_SIZE * 1.25 * Math.max(5, Math.min(9, r * 0.03));
 
@@ -344,9 +431,53 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
         fillRoundedPolygon(pts, ARROW_CORNER_RADIUS);
         c.restore();
 
+        // Emit a center pulse once when this item effectively arrives near the center
+        if (!pulsedItems.has(item.id)) {
+          const nearT = t >= 0.985; // slightly looser than 0.995 to avoid frame-miss
+          const dx = x - cx, dy = y - cy;
+          const nearR = Math.hypot(dx, dy) <= Math.max(2, r * 0.01); // pixel/radius guard
+          if (nearT || nearR) {
+            pulses.push({ created: now });
+            pulsedItems.add(item.id);
+          }
+        }
+
         // Label with agent id and elapsed time below arrow (screen space)
         const elapsedMs = Math.round(t * est);
         drawLabel(x, y, agent.id, fmtElapsed(elapsedMs), ARROW_COLOR_HEX);
+      }
+
+      // Draw center pulses on top
+      if (pulses.length) {
+        const maxR = r * Math.max(0, Math.min(1, RADAR_PULSE_MAX_RADIUS));
+        const secMul = Math.max(0, Math.min(2, RADAR_PULSE_SECONDARY));
+        c.save();
+        c.translate(cx, cy);
+        const remain: Pulse[] = [];
+        for (const p of pulses) {
+          const age = now - p.created;
+          const dur = Math.max(1, RADAR_PULSE_DURATION_MS);
+          const u = Math.max(0, Math.min(1, age / dur));
+          const radius = Math.max(0.5, u * maxR);
+          const alpha = 1.0 - u; // simple fade out
+          c.strokeStyle = ARROW_COLOR_HEX;
+          c.globalAlpha = alpha * 0.9;
+          c.lineWidth = RADAR_PULSE_WIDTH;
+          c.beginPath();
+          c.arc(0, 0, radius, 0, Math.PI * 2);
+          c.stroke();
+          if (secMul > 0) {
+            c.globalAlpha = Math.max(0, alpha * 0.6);
+            c.beginPath();
+            c.arc(0, 0, Math.max(0.5, (u * secMul) * maxR), 0, Math.PI * 2);
+            c.stroke();
+          }
+          if (age < dur) remain.push(p);
+        }
+        c.restore();
+        // retain non-finished pulses
+        pulses.length = 0;
+        pulses.push(...remain);
       }
       rafId = window.requestAnimationFrame(drawAgents);
     }

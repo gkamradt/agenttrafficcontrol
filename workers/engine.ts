@@ -2,7 +2,8 @@
 // Exports tiny pure helpers for tests; only starts the loop when actually
 // running in a WorkerGlobalScope (not during Vitest/jsdom imports).
 
-import { DEFAULT_SEED, ENGINE_TICK_HZ, RUNNING_DEFAULT } from '../lib/config';
+import { DEFAULT_SEED, RUNNING_DEFAULT } from '../lib/config';
+import { ENGINE_TICK_HZ } from '@/lib/constants';
 import { debugLog } from '../lib/debug';
 import { buildItemsFromPlan, detectCycles, promoteQueuedToAssigned, countInProgress, computeMetrics } from '@/lib/engine';
 import { calmPlan, rushPlan, webPlan } from '@/plans';
