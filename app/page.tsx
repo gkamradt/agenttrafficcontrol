@@ -19,9 +19,10 @@ export default function Home() {
       {/* Controls row */}
       <div className="border-t border-gray-800" />
 
-      {/* Main two-column layout */}
+      {/* Main layout */}
       <main className="flex-1 overflow-hidden p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4 h-full min-h-0">
+        {/* Desktop layout (unchanged) */}
+        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4 h-full min-h-0">
           {/* LEFT COLUMN: 3 rows -> [Monitoring (auto), Operator Actions (auto), Work/Agent table (1fr = remaining space)] */}
           <section className="min-h-0 overflow-hidden grid grid-rows-[auto_auto_1fr]">
             {/* Monitoring table (top) with three internal rows */}
@@ -102,6 +103,66 @@ export default function Home() {
               </div>
             </div>
           </aside>
+        </div>
+
+        {/* Mobile layout */}
+        <div className="block lg:hidden h-full min-h-0 overflow-auto">
+          <div className="flex flex-col gap-3 p-1">
+            {/* Top line metrics (compact, hide completion chart) */}
+            <div className="min-h-0">
+              <TopOverview compact hideCompletion />
+            </div>
+
+            {/* Radar (no global queue) */}
+            <div className="min-h-0">
+              <div className="flex items-center bg-[#130f04ff]">
+                <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">RADAR</h2>
+              </div>
+              <div className="border border-[#352b19ff] bg-black" style={{ height: 260 }}>
+                <RadarCanvas message="" />
+              </div>
+            </div>
+
+            {/* Work items table (compact + mini text, capped height with internal scroll) */}
+            <div className="min-h-0">
+              <div className="flex items-center bg-[#130f04ff]">
+                <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">WORK ITEMS</h2>
+              </div>
+              <div className="min-h-0 overflow-hidden">
+                <WorkTable compact mini maxHeight={390} columns={['id','work','tokens','eta']} />
+              </div>
+            </div>
+
+            {/* Project details (ID + Description) */}
+            <div className="min-h-0">
+              <div className="flex items-center bg-[#130f04ff]">
+                <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">PROJECT</h2>
+              </div>
+              <div className="grid grid-cols-[35%_1fr] border border-[#352b19ff] bg-black">
+                <div className="border-r border-[#352b19ff] p-2">
+                  <div className="text-xs text-[#d79326ff] mb-1">Project ID</div>
+                  <div className="text-sm text-[#a4a4a4ff]"><ProjectIdDisplay /></div>
+                </div>
+                <div className="p-2">
+                  <div className="text-xs text-[#c89225ff] mb-1">Project Description</div>
+                  <div className="text-sm text-[#a4a4a4ff]"><ProjectDescription /></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Master Control Panel */}
+            <div className="min-h-0">
+              <div className="flex items-center bg-[#130f04ff]">
+                <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">MASTER CONTROL PANEL</h2>
+              </div>
+              <div className="border border-gray-800 bg-black">
+                <div className="px-2 pt-2">
+                  <TimelineStatusBar />
+                </div>
+                <ControlBar />
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

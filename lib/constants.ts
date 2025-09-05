@@ -1,7 +1,7 @@
 // Core constants for Calming Control Room (tunable via PRD)
 
 // Cost model (USD per token). Example: $0.002 per 1K tokens => 0.000002 per token
-export const COST_PER_TOKEN_USD = 0.0002;
+export const COST_PER_TOKEN_USD = 0.00001;
 
 // Concurrency and motion tuning
 export const MAX_CONCURRENT = 12;

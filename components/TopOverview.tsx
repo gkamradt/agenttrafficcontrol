@@ -24,7 +24,7 @@ function fmtFloat(n?: number, f = 1) {
   return v.toFixed(f);
 }
 
-export default function TopOverview() {
+export default function TopOverview({ compact = false, hideCompletion = false }: { compact?: boolean; hideCompletion?: boolean }) {
   const m = useMetrics();
 
   // Completion over time graph state
@@ -93,57 +93,67 @@ export default function TopOverview() {
     };
   }, []);
 
+  const gridCols = compact ? '1fr' : '1fr 1fr 1fr';
+  const gapPx = compact ? 6 : 8;
+  const headerCls = compact
+    ? 'text-sm text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]'
+    : 'text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]';
+  const labelCls = compact ? 'text-xs' : 'text-md';
+  const valueCls = compact ? 'text-base' : 'text-xl';
+
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: '8px',
+        gridTemplateColumns: gridCols,
+        gap: `${gapPx}px`,
         height: '100%',
         minHeight: 0,
       }}
     >
       {/* Main Metrics card */}
       <div style={{ background: '#000' }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">MAIN METRICS</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, color: '#cfcfcf', padding: '8px' }}>
+        <div className={headerCls}>MAIN METRICS</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: gapPx, color: '#cfcfcf', padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="text-md" style={{ color: '#a0a0a0'}}>ACTIVE AGENTS</div>
-            <div className="text-xl" style={{ marginTop: 4 }}>{fmtInt(m.active_agents)}</div>
+            <div className={labelCls} style={{ color: '#a0a0a0'}}>ACTIVE AGENTS</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtInt(m.active_agents)}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="text-md" style={{ color: '#a0a0a0'}}>TOTAL TOKENS</div>
-            <div className="text-xl" style={{ marginTop: 4 }}>{fmtInt(m.total_tokens)}</div>
+            <div className={labelCls} style={{ color: '#a0a0a0'}}>TOTAL TOKENS</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtInt(m.total_tokens)}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="text-md" style={{ color: '#a0a0a0'}}>TOTAL SPEND</div>
-            <div className="text-xl" style={{ marginTop: 4 }}>{fmtUSD(m.total_spend_usd)}</div>
+            <div className={labelCls} style={{ color: '#a0a0a0'}}>TOTAL SPEND</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtUSD(m.total_spend_usd)}</div>
           </div>
         </div>
       </div>
 
       {/* Live Throughput card */}
       <div style={{ background: '#000' }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">LIVE THROUGHPUT</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, color: '#cfcfcf', padding: '8px' }}>
+        <div className={headerCls}>LIVE THROUGHPUT</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gapPx, color: '#cfcfcf', padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="text-md" style={{ color: '#a0a0a0'}}>TOKENS / SEC</div>
-            <div className="text-xl" style={{ marginTop: 4 }}>{fmtFloat(m.live_tps, 2)}</div>
+            <div className={labelCls} style={{ color: '#a0a0a0'}}>TOKENS / SEC</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtFloat(m.live_tps, 2)}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="text-md" style={{ color: '#a0a0a0'}}>SPEND / SEC</div>
-            <div className="text-xl" style={{ marginTop: 4 }}>{fmtUSD(m.live_spend_per_s)}</div>
+            <div className={labelCls} style={{ color: '#a0a0a0'}}>SPEND / SEC</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtUSD(m.live_spend_per_s)}</div>
           </div>
         </div>
       </div>
 
-      {/* Project Completion Rate card */}
-      <div style={{ background: '#000', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div className="text-lg text-[#d79326ff] pl-2 pr-2 bg-[#130f04ff]">PROJECT COMPLETION RATE</div>
-        <div style={{ padding: '8px', flex: 1, minHeight: 0 }}>
-          <Chart points={points} containerRef={containerRef} />
+      {/* Project Completion Rate card (optionally hidden on mobile) */}
+      {hideCompletion ? null : (
+        <div style={{ background: '#000', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div className={headerCls}>COMPLETION RATE</div>
+          <div style={{ padding: '8px', flex: 1, minHeight: 0, height: compact ? 120 : undefined }}>
+            <Chart points={points} containerRef={containerRef} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

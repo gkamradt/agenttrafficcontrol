@@ -2,7 +2,8 @@
 import { calmPlan } from './calm';
 import { rushPlan } from './rush';
 import { webPlan } from './web';
-export { calmPlan, rushPlan, webPlan };
+import { testPlan } from './test';
+export { calmPlan, rushPlan, webPlan, testPlan };
 export * from './types';
 
 // Central registry to drive UI/worker off plan definitions
@@ -12,6 +13,7 @@ export const ALL_PLANS: readonly PlanDefinition[] = [
   rushPlan,
   calmPlan,
   webPlan,
+  testPlan,
 ] as const;
 
 export const PLAN_NAMES = ALL_PLANS.map(p => p.name) as readonly string[];
