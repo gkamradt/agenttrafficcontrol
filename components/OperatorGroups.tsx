@@ -8,7 +8,7 @@ import { appStore } from '@/lib/store';
 const LS_PLAN_KEY = 'ccr.plan';
 
 function pickPlan(name: string): PlanDefinition {
-  const by = { Calm: calmPlan, Rush: rushPlan, Web: webPlan } as const;
+  const by = { Rush: rushPlan, Calm: calmPlan, Web: webPlan } as const;
   return (by as Record<string, PlanDefinition>)[name] ?? rushPlan;
 }
 

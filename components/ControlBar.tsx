@@ -2,56 +2,56 @@
 
 import React, { useEffect, useState } from 'react';
 import { ensureConnected, postIntent } from '@/lib/simClient';
+import AudioPlayer from '@/components/AudioPlayer';
+import { tracks, radio } from '@/lib/audio/tracks';
 
 const LS_PREFIX = 'ccr.';
 const LS = {
   plan: LS_PREFIX + 'plan',
-  seed: LS_PREFIX + 'seed',
   speed: LS_PREFIX + 'speed',
 };
 
-const plans = ['Calm', 'Rush', 'Web'] as const;
+const plans = ['Rush', 'Calm', 'Web'] as const;
 
 export default function ControlBar() {
-  const [plan, setPlan] = useState<string>(() => (typeof window !== 'undefined' ? localStorage.getItem(LS.plan) || 'Calm' : 'Calm'));
-  const [seed, setSeed] = useState<string>(() => (typeof window !== 'undefined' ? localStorage.getItem(LS.seed) || 'auto' : 'auto'));
-  const [speed, setSpeed] = useState<number>(() => (typeof window !== 'undefined' ? Number(localStorage.getItem(LS.speed) || 1) : 1));
+  // Default to Rush; hydrate from localStorage after mount
+  const [plan, setPlan] = useState<string>('Rush');
+  // Speed controls temporarily removed for stability
   // No longer exposing running/pause in UI
 
   useEffect(() => {
     ensureConnected();
-    // On first mount, apply persisted plan/seed and URL ?seed=
+    // On first mount, set seed, apply plan (from LS or Rush), then start running
     try {
+      const stored = localStorage.getItem(LS.plan) || 'Rush';
+      setPlan(stored);
       const url = new URL(window.location.href);
       const urlSeed = url.searchParams.get('seed');
-      if (urlSeed) {
-        postIntent({ type: 'set_seed', seed: urlSeed });
-      } else if (seed) {
-        postIntent({ type: 'set_seed', seed });
-      }
-      if (plan) {
-        postIntent({ type: 'set_plan', plan: plan as 'Calm' | 'Rush' | 'Web' });
-      }
-      // Start the engine automatically now that we removed Run/Pause
+      const randomSeed = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      postIntent({ type: 'set_seed', seed: urlSeed || randomSeed });
+      // Apply plan before starting engine to avoid pause from later set_plan
+      postIntent({ type: 'set_plan', plan: stored as 'Calm' | 'Rush' | 'Web' });
+      // Start the engine automatically
       postIntent({ type: 'set_running', running: true });
       // Snapshot to sync UI quickly
       postIntent({ type: 'request_snapshot' });
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem(LS.plan, plan); }, [plan]);
-  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem(LS.seed, seed); }, [seed]);
-  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem(LS.speed, String(speed)); }, [speed]);
+  // Persist plan whenever it changes (engine is only updated via Execute or initial mount)
+  useEffect(() => {
+    try { localStorage.setItem(LS.plan, plan); } catch {}
+  }, [plan]);
+  // Speed persistence removed
   // running state persistence removed
 
   return (
     <div className="px-2 py-2 flex flex-wrap gap-2 items-center">
-      <label className="text-sm text-gray-300">Plan</label>
+      <label className="text-sm text-gray-300">Project</label>
       <select
         value={plan}
         onChange={(e) => setPlan(e.target.value)}
-        className="bg-black border border-gray-700 px-2 py-1 text-sm text-gray-100"
+        className="bg-black border border-gray-700 px-2 py-1 text-sm h-8 text-gray-100"
       >
         {plans.map((p) => (
           <option key={p} value={p}>{p}</option>
@@ -64,29 +64,15 @@ export default function ControlBar() {
           postIntent({ type: 'set_running', running: true });
           postIntent({ type: 'request_snapshot' });
         }}
-        className="text-xs px-2 py-1 border border-gray-600 text-gray-200"
-      >Apply Plan</button>
+        className="text-xs px-2 py-1 border border-gray-600 text-gray-200 h-8"
+      >Execute</button>
 
-      <label className="text-sm text-gray-300 ml-2">Seed</label>
-      <input
-        value={seed}
-        onChange={(e) => setSeed(e.target.value)}
-        className="bg-black border border-gray-700 px-2 py-1 text-sm text-gray-100 w-28"
-        placeholder="auto"
-      />
-      <button
-        onClick={() => { postIntent({ type: 'set_seed', seed }); postIntent({ type: 'request_snapshot' }); }}
-        className="text-xs px-2 py-1 border border-gray-600 text-gray-200"
-      >Apply Seed</button>
+      {/* Speed controls removed for now */}
 
-      <label className="text-sm text-gray-300 ml-2">Speed</label>
-      <div className="inline-flex gap-1">
-        {[1,2,3].map((x) => (
-          <button key={x}
-            onClick={() => { setSpeed(x); postIntent({ type: 'set_speed', speed: x }); }}
-            className={`text-xs px-2 py-1 border ${speed===x ? 'border-blue-500 text-blue-200' : 'border-gray-600 text-gray-200'}`}
-          >×{x}</button>
-        ))}
+      {/* Right-aligned players: Radio + Music */}
+      <div className="ml-auto flex items-end gap-6">
+        <AudioPlayer tracks={radio} showSourceLink className="text-right" />
+        <AudioPlayer tracks={tracks} className="text-right" />
       </div>
     </div>
   );

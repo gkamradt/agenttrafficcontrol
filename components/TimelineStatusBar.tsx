@@ -28,39 +28,92 @@ function fmtHMS(ms: number) {
 export default function TimelineStatusBar() {
   const items = useAppSelector((s) => s.items);
 
-  // Compute earliest start timestamp and total expected ms (sum of estimates)
-  const { earliestStart, totalEstimateMs } = useMemo(() => {
-    let earliest: number | undefined = undefined;
+  // Compute totals and progress across items, plus earliest start and completion
+  const { totalEstimateMs, progressMs, hasAnyStarted, earliestStart, projectComplete } = useMemo(() => {
     let total = 0;
-    for (const it of Object.values(items) as WorkItem[]) {
-      total += Math.max(0, it.estimate_ms || 0);
-      if (it.started_at && (earliest === undefined || it.started_at < earliest)) {
-        earliest = it.started_at;
+    let progressed = 0;
+    let anyStarted = false;
+    let earliest: number | undefined = undefined;
+    let allDone = true;
+    const now = Date.now();
+    const arr = Object.values(items) as WorkItem[];
+    if (arr.length === 0) allDone = false; // empty project is not complete
+    for (const it of arr) {
+      const est = Math.max(0, it.estimate_ms || 0);
+      total += est;
+      if (typeof it.started_at === 'number' && isFinite(it.started_at)) {
+        if (earliest === undefined || it.started_at < earliest) earliest = it.started_at;
+      }
+      if (it.status !== 'queued' || (typeof it.started_at === 'number' && isFinite(it.started_at))) anyStarted = true;
+      if (it.status !== 'done') allDone = false;
+      if (est <= 0) continue;
+      if (it.status === 'done') {
+        progressed += est;
+      } else if (it.status === 'in_progress') {
+        if (typeof it.eta_ms === 'number' && isFinite(it.eta_ms)) {
+          const elapsed = Math.max(0, Math.min(est, est - it.eta_ms));
+          progressed += elapsed;
+        } else if (typeof it.started_at === 'number' && isFinite(it.started_at)) {
+          const elapsed = Math.max(0, Math.min(est, now - it.started_at));
+          progressed += elapsed;
+        }
       }
     }
-    return { earliestStart: earliest, totalEstimateMs: total };
+    return { totalEstimateMs: total, progressMs: progressed, hasAnyStarted: anyStarted, earliestStart: earliest, projectComplete: allDone };
   }, [items]);
 
   const [now, setNow] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(id);
-  }, []);
+  const [stoppedAt, setStoppedAt] = useState<number | undefined>(undefined);
 
-  const isRunning = typeof earliestStart === 'number' && earliestStart > 0;
-  const elapsedMs = isRunning ? Math.max(0, now - (earliestStart as number)) : 0;
+  // Determine if any items are currently in progress (agents active)
+  // const anyInProgress = useMemo(() => {
+  //   for (const it of Object.values(items) as WorkItem[]) {
+  //     if (it.status === 'in_progress') return true;
+  //   }
+  //   return false;
+  // }, [items]);
+
+  const hasStarted = hasAnyStarted;
+  const isComplete = !!projectComplete;
+
+  // Tick while started and not complete; freeze when complete
+  useEffect(() => {
+    let id: number | undefined;
+    if (hasStarted && !isComplete) {
+      setStoppedAt(undefined);
+      // Faster tick for smoother progress updates
+      id = window.setInterval(() => setNow(Date.now()), 100);
+    } else if (isComplete) {
+      // capture the moment we detected completion (freeze timer)
+      setStoppedAt((prev) => prev ?? Date.now());
+    }
+    return () => {
+      if (id) clearInterval(id);
+    };
+  }, [hasStarted, isComplete]);
+
   const denom = totalEstimateMs > 0 ? totalEstimateMs : 1;
-  const progress = Math.max(0, Math.min(1, elapsedMs / denom));
+  // Progress bar uses aggregate item progress (responds to engine speed)
+  const progressed = hasStarted ? Math.max(0, Math.min(denom, progressMs)) : 0;
+  const baseProgress = Math.max(0, Math.min(1, progressed / denom));
+  const progress = isComplete ? 1 : baseProgress;
+  // Timer uses wall-clock since first start, freezes on completion
+  const effectiveNow = !isComplete ? now : (stoppedAt ?? now);
+  const timerMs = hasStarted && typeof earliestStart === 'number' ? Math.max(0, effectiveNow - earliestStart) : 0;
+  const statusLabel = !hasStarted ? 'INITIALIZING' : isComplete ? 'COMPLETE' : 'RUNNING';
 
   return (
     <div className="w-full bg-black">
       <div className="flex items-center gap-4 px-3 py-2">
-        <div className="flex items-center gap-2 min-w-[120px]">
-          <span className={`text-sm font-semibold ${isRunning ? 'text-green-400' : 'text-yellow-300'}`}>
-            {isRunning ? 'RUNNING' : 'INITIALIZING'}
+        <div className="flex items-center gap-3 min-w-[180px]">
+          <LiveBadge />
+          <span
+            className={`text-xs font-semibold ${statusLabel === 'INITIALIZING' ? 'text-yellow-300' : 'text-[var(--row-done-fg)]'}`}
+          >
+            {statusLabel}
           </span>
-          {isRunning && (
-            <span className="font-mono text-xs text-gray-300">{fmtHMS(elapsedMs)}</span>
+          {hasStarted && (
+            <span className="font-mono text-xs text-[var(--row-done-fg)]">{fmtHMS(timerMs)}</span>
           )}
         </div>
         <div className="flex-1">
@@ -84,8 +137,21 @@ function ProgressBar({ pct }: { pct: number }) {
       {/* notch at current progress */}
       <div
         className="absolute top-0 h-full border-r-2 border-white/70"
-        style={{ left: `calc(${percent}% - 1px)` }}
+        style={{ left: `calc(${percent}% - 1px)`, transition: 'left 0.3s linear' }}
       />
+    </div>
+  );
+}
+
+function LiveBadge() {
+  return (
+    <div className="flex items-center gap-2 border border-gray-600/60 rounded px-2 py-0.5 select-none">
+      
+      <span className="relative flex h-3 w-3 items-center justify-center">
+        <span className="absolute inset-0 inline-flex rounded-full bg-red-500 opacity-75 animate-ping"></span>
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
+      </span>
+      <span className="text-[10px] leading-none font-bold tracking-widest text-gray-300">LIVE</span>
     </div>
   );
 }

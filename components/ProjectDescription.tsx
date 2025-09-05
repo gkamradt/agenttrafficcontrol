@@ -17,8 +17,8 @@ export default function ProjectDescription() {
 
   const desc = useMemo(() => {
     const map: Record<string, { description?: string }> = {
-      Calm: calmPlan,
       Rush: rushPlan,
+      Calm: calmPlan,
       Web: webPlan,
     };
     const p = map[plan] || rushPlan;

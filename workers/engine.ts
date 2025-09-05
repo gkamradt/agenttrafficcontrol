@@ -90,6 +90,7 @@ function tryStartOne(ctx: Ctx, now: number, diffs: { items: Partial<WorkItem>[];
 function stepEngine(ctx: Ctx) {
   const now = Date.now();
   const diffs: { items: Partial<WorkItem>[]; agents: Partial<Agent>[]; agents_remove?: string[] } = { items: [], agents: [] };
+  // Simulation delta (seconds)
   const dtSec = Math.max(0, (now - ctx.lastTickAt) / 1000);
   ctx.lastTickAt = now;
 
@@ -123,6 +124,7 @@ function stepEngine(ctx: Ctx) {
     if (!Number.isFinite(it.tokens_done)) it.tokens_done = 0;
     // eta by elapsed time
     const started = it.started_at ?? now;
+    // ETA based on real elapsed wall time
     it.eta_ms = Math.max(0, it.estimate_ms - (now - started));
     diffs.items.push({ id: it.id, tps: it.tps, tokens_done: it.tokens_done, eta_ms: it.eta_ms });
     // completion
