@@ -128,7 +128,7 @@ function ProgressBar({ pct }: { pct: number }) {
   const pc = Math.max(0, Math.min(1, pct));
   const percent = pc * 100;
   return (
-    <div className="relative h-4 w-full bg-[#0b0b0b] border border-[#1f2910]">
+    <div className="relative h-3 w-full bg-[#0b0b0b] border border-[#1f2910]">
       {/* filled portion */}
       <div
         className="h-full bg-green-600"

@@ -21,7 +21,7 @@ export type SimMsg =
 
 export type SimIntent =
   | { type: 'set_running'; running: boolean }
-  | { type: 'set_plan'; plan: 'Calm' | 'Rush' | 'Web' }
+  | { type: 'set_plan'; plan: string }
   | { type: 'set_seed'; seed: string }
   | { type: 'set_speed'; speed: number }
   | { type: 'request_snapshot' };

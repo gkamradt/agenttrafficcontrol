@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ensureConnected, postIntent } from '@/lib/simClient';
 import AudioPlayer from '@/components/AudioPlayer';
 import { tracks, radio } from '@/lib/audio/tracks';
+import { PLAN_NAMES, DEFAULT_PLAN_NAME } from '@/plans';
 
 const LS_PREFIX = 'ccr.';
 const LS = {
@@ -11,26 +12,23 @@ const LS = {
   speed: LS_PREFIX + 'speed',
 };
 
-const plans = ['Rush', 'Calm', 'Web'] as const;
-
 export default function ControlBar() {
-  // Default to Rush; hydrate from localStorage after mount
-  const [plan, setPlan] = useState<string>('Rush');
+  const [plan, setPlan] = useState<string>(DEFAULT_PLAN_NAME);
   // Speed controls temporarily removed for stability
   // No longer exposing running/pause in UI
 
   useEffect(() => {
     ensureConnected();
-    // On first mount, set seed, apply plan (from LS or Rush), then start running
+    // On first mount, set seed, apply plan, then start running
     try {
-      const stored = localStorage.getItem(LS.plan) || 'Rush';
+      const stored = localStorage.getItem(LS.plan) || DEFAULT_PLAN_NAME;
       setPlan(stored);
       const url = new URL(window.location.href);
       const urlSeed = url.searchParams.get('seed');
       const randomSeed = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       postIntent({ type: 'set_seed', seed: urlSeed || randomSeed });
       // Apply plan before starting engine to avoid pause from later set_plan
-      postIntent({ type: 'set_plan', plan: stored as 'Calm' | 'Rush' | 'Web' });
+      postIntent({ type: 'set_plan', plan: stored });
       // Start the engine automatically
       postIntent({ type: 'set_running', running: true });
       // Snapshot to sync UI quickly
@@ -53,14 +51,14 @@ export default function ControlBar() {
         onChange={(e) => setPlan(e.target.value)}
         className="bg-black border border-gray-700 px-2 py-1 text-sm h-8 text-gray-100"
       >
-        {plans.map((p) => (
+        {PLAN_NAMES.map((p) => (
           <option key={p} value={p}>{p}</option>
         ))}
       </select>
       <button
         onClick={() => {
           // Apply plan and immediately start running
-          postIntent({ type: 'set_plan', plan: plan as 'Calm' | 'Rush' | 'Web' });
+          postIntent({ type: 'set_plan', plan: plan });
           postIntent({ type: 'set_running', running: true });
           postIntent({ type: 'request_snapshot' });
         }}

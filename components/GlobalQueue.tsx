@@ -87,7 +87,7 @@ export default function GlobalQueue() {
                 ) : (
                   // Only show "queue empty" when there is truly no next item
                   nextList.length === 0 ? (
-                    <div className="text-xs text-gray-500 italic">Queue empty</div>
+                    <div className="text-xs text-gray-500 italic pt-2">Queue empty</div>
                   ) : null
                 )}
               </div>

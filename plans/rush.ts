@@ -30,9 +30,9 @@ export const rushPlan: PlanDefinition = {
     // -----------------------------
     // Planning
     // -----------------------------
-    { id: 'PA1', group: 'P', sector: 'PLANNING', depends_on: [], estimate_ms: 20000, tps_min: 12, tps_max: 24, work_desc: 'Define mission goals and safety constraints for rock-hauling humanoid.' },
-    { id: 'PA2', group: 'P', sector: 'PLANNING', depends_on: ['PA1'], estimate_ms: 18000, tps_min: 12, tps_max: 22, work_desc: 'Draft system architecture: gait plan, payload target, torque budget.' },
-    { id: 'PB1', group: 'P', sector: 'PLANNING', depends_on: [], estimate_ms: 16000, tps_min: 10, tps_max: 20, work_desc: 'Analyze mountain terrain; compile routes and incline profiles dataset.' },
+    { id: 'PA1', group: 'P', sector: 'PLANNING', depends_on: [], estimate_ms: 20000, tps_min: 1200, tps_max: 2400, work_desc: 'Define mission goals and safety constraints for rock-hauling humanoid.' },
+    { id: 'PA2', group: 'P', sector: 'PLANNING', depends_on: [], estimate_ms: 18000, tps_min: 1200, tps_max: 2400, work_desc: 'Draft system architecture: gait plan, payload target, torque budget.' },
+    { id: 'PB1', group: 'P', sector: 'PLANNING', depends_on: [], estimate_ms: 16000, tps_min: 1000000, tps_max: 20000000, work_desc: 'Analyze mountain terrain; compile routes and incline profiles dataset.' },
 
     { id: 'PA3', group: 'P', sector: 'PLANNING', depends_on: ['PA1'], estimate_ms: 16000, tps_min: 12, tps_max: 22, work_desc: 'Build risk register: avalanche, rockfall, battery thermal runaway.' },
     { id: 'PA4', group: 'P', sector: 'PLANNING', depends_on: ['PA1'], estimate_ms: 15000, tps_min: 12, tps_max: 22, work_desc: 'Define success metrics & telemetry KPIs (time-to-summit, Wh/m, fault rate).' },

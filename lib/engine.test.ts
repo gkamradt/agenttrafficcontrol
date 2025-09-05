@@ -46,8 +46,12 @@ describe('deps-resolver', () => {
     expect(m.active_agents).toBe(1);
     expect(m.total_tokens).toBeCloseTo(120, 5);
     expect(m.live_tps).toBeCloseTo(5, 5);
-    // eligible: A (deps none), B (A done) => 2; done_count 1 => 0.5
-    expect(m.completion_rate).toBeCloseTo(0.5, 5);
+    // Time-weighted completion across whole plan:
+    // A contributes 100% of its 10s, B contributes (20/28) of its 5s
+    // => (10s + 5s * 20/28) / (10s + 5s)
+    const estTokensB = Math.round(((5 + 6) / 2) * (5000 / 1000));
+    const expected = (10000 + 5000 * (20 / estTokensB)) / (10000 + 5000);
+    expect(m.completion_rate).toBeCloseTo(expected, 5);
     expect(m.total_spend_usd).toBeGreaterThan(0);
     expect(m.live_spend_per_s).toBeGreaterThan(0);
   });

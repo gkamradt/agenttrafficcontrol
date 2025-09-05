@@ -6,14 +6,14 @@ import { DEFAULT_SEED, RUNNING_DEFAULT } from '../lib/config';
 import { ENGINE_TICK_HZ } from '@/lib/constants';
 import { debugLog } from '../lib/debug';
 import { buildItemsFromPlan, detectCycles, promoteQueuedToAssigned, countInProgress, computeMetrics } from '@/lib/engine';
-import { calmPlan, rushPlan, webPlan } from '@/plans';
+import { getPlanByName, ALL_PLANS, DEFAULT_PLAN_NAME } from '@/plans';
 import { createRNG } from '@/lib/rng';
 import { MAX_CONCURRENT } from '@/lib/constants';
 import type { AppState, ProjectMetrics, Agent, WorkItem } from '../lib/types';
 
 export const ENGINE_WORKER_MODULE_LOADED = true;
 
-export type PlanName = 'Calm' | 'Rush' | 'Web';
+export type PlanName = string;
 
 export function zeroMetrics(): ProjectMetrics {
   return {
@@ -171,8 +171,8 @@ function stopLoop(ctx: Ctx) {
 }
 
 function loadPlan(ctx: Ctx, name: PlanName) {
-  // Choose plan by name
-  const planDef = name === 'Rush' ? rushPlan : name === 'Web' ? webPlan : calmPlan;
+  // Choose plan by name from registry (fallback to first available)
+  const planDef = getPlanByName(name) ?? ALL_PLANS[0];
   const items = buildItemsFromPlan(planDef);
   const cycles = detectCycles(items);
   if (cycles.length) debugLog('worker', 'plan-cycles-detected', { count: cycles.length });
@@ -204,7 +204,7 @@ function handleIntent(ctx: Ctx, intent: any) {
       return;
     }
     case 'set_plan': {
-      const name = (intent.plan as PlanName) ?? 'Calm';
+      const name = (intent.plan as PlanName) ?? DEFAULT_PLAN_NAME;
       debugLog('worker', 'intent:set_plan', { plan: name });
       // Load items from plan and pause so user can inspect
       loadPlan(ctx, name);
@@ -236,7 +236,7 @@ function makeCtx(): Ctx {
     tickId: 0,
     running: RUNNING_DEFAULT,
     speed: 1,
-    plan: 'Calm',
+    plan: DEFAULT_PLAN_NAME,
     timer: null,
     tickMs: hzToMs(ENGINE_TICK_HZ),
     rng: createRNG(DEFAULT_SEED),
@@ -253,7 +253,7 @@ debugLog('worker', 'bootstrap', { isDedicatedWorker: IS_DEDICATED_WORKER, ENGINE
 if (IS_DEDICATED_WORKER) {
   const ctx = makeCtx();
   // Preload default plan so snapshot includes items for inspection
-  loadPlan(ctx, 'Calm');
+  loadPlan(ctx, DEFAULT_PLAN_NAME);
   // Post initial snapshot immediately so UI can latch onto state
   postSnapshot(ctx);
   // Start ticking if running by default

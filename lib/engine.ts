@@ -96,19 +96,39 @@ export function countInProgress(items: Record<string, WorkItem>): number {
 export function computeMetrics(items: Record<string, WorkItem>, agents: Record<string, Agent>): ProjectMetrics {
   let total_tokens = 0;
   let live_tps = 0;
-  let done_count = 0;
-  let eligible_count = 0;
+  let total_estimate_ms = 0;
+  let progressed_ms = 0;
+  const now = Date.now();
 
   for (const it of Object.values(items)) {
     total_tokens += it.tokens_done || 0;
     if (it.status === 'in_progress') live_tps += it.tps || 0;
-    if (it.status === 'done') done_count += 1;
-    if (depsSatisfied(items, it.id)) eligible_count += 1;
+
+    const est = Math.max(0, it.estimate_ms || 0);
+    total_estimate_ms += est;
+    if (est <= 0) continue;
+
+    if (it.status === 'done') {
+      progressed_ms += est;
+    } else if (it.status === 'in_progress') {
+      // Prefer ETA-based progress when available
+      if (typeof it.eta_ms === 'number' && isFinite(it.eta_ms)) {
+        const elapsed = Math.max(0, Math.min(est, est - it.eta_ms));
+        progressed_ms += elapsed;
+      } else if (typeof it.started_at === 'number' && isFinite(it.started_at)) {
+        const elapsed = Math.max(0, Math.min(est, now - it.started_at));
+        progressed_ms += elapsed;
+      } else if (typeof it.est_tokens === 'number' && it.est_tokens > 0) {
+        const td = Math.max(0, it.tokens_done || 0);
+        const frac = Math.max(0, Math.min(1, td / it.est_tokens));
+        progressed_ms += frac * est;
+      }
+    }
   }
 
   const total_spend_usd = total_tokens * COST_PER_TOKEN_USD;
   const live_spend_per_s = live_tps * COST_PER_TOKEN_USD;
-  const completion_rate = eligible_count > 0 ? done_count / eligible_count : 0;
+  const completion_rate = total_estimate_ms > 0 ? progressed_ms / total_estimate_ms : 0;
 
   return {
     active_agents: Object.keys(agents).length,

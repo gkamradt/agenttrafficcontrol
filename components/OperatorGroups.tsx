@@ -1,35 +1,32 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { calmPlan, rushPlan, webPlan } from '@/plans';
+import { getPlanByName, ALL_PLANS } from '@/plans';
 import type { PlanDefinition, WorkGroupDef } from '@/plans/types';
 import { appStore } from '@/lib/store';
+import { DEFAULT_PLAN_NAME } from '@/plans';
 
 const LS_PLAN_KEY = 'ccr.plan';
 
 function pickPlan(name: string): PlanDefinition {
-  const by = { Rush: rushPlan, Calm: calmPlan, Web: webPlan } as const;
-  return (by as Record<string, PlanDefinition>)[name] ?? rushPlan;
+  return getPlanByName(name) ?? ALL_PLANS[0];
 }
 
-function deriveGroups(plan: PlanDefinition): WorkGroupDef[] {
-  if (plan.groups && plan.groups.length) return plan.groups;
-  // Fallback: derive from item.group letters
+function deriveGroupsFromItems(items: ReturnType<typeof appStore.getState>['items']): WorkGroupDef[] {
   const seen = new Map<string, number>();
-  for (const it of plan.items) {
+  for (const it of Object.values(items)) {
     seen.set(it.group, (seen.get(it.group) || 0) + 1);
   }
   const out: WorkGroupDef[] = [];
   for (const [id, count] of seen) {
     out.push({ id, title: `Group ${id}`, description: `${count} work items.` });
   }
-  // Stable order by id
   out.sort((a, b) => a.id.localeCompare(b.id));
   return out;
 }
 
 export default function OperatorGroups() {
-  const [planName, setPlanName] = useState<string>('Rush');
+  const [planName, setPlanName] = useState<string>(DEFAULT_PLAN_NAME);
 
   // Subscribe to live items so completion updates over time
   const items = useSyncExternalStore(
@@ -47,8 +44,9 @@ export default function OperatorGroups() {
 
   const groups = useMemo(() => {
     const plan = pickPlan(planName);
-    return deriveGroups(plan);
-  }, [planName]);
+    if (plan.groups && plan.groups.length) return plan.groups;
+    return deriveGroupsFromItems(items);
+  }, [planName, items]);
 
   function percentForGroup(groupId: string): number {
     const list = Object.values(items).filter((it) => it.group === groupId);
