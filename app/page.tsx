@@ -10,7 +10,7 @@ import TimelineStatusBar from '../components/TimelineStatusBar';
 
 export default function Home() {
   return (
-    <div className="h-screen overflow-hidden bg-black text-white flex flex-col">
+    <div className="min-h-screen overflow-x-hidden bg-black text-white flex flex-col">
       {/* Header */}
       <header className="p-4">
         <h1 className="text-2xl tracking-tighter font-bold text-gray-500 text-spacing-px">AGENT TRAFFIC CONTROL</h1>
@@ -20,8 +20,8 @@ export default function Home() {
       <div className="border-t border-gray-800" />
 
       {/* Main two-column layout */}
-      <main className="flex-1 overflow-hidden p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4 h-full min-h-0">
+      <main className="flex-1 p-4 overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4">
           {/* LEFT COLUMN: 3 rows -> [Monitoring (auto), Operator Actions (auto), Work/Agent table (1fr = remaining space)] */}
           <section className="min-h-0 overflow-hidden grid grid-rows-[auto_auto_1fr]">
             {/* Monitoring table (top) with three internal rows */}
@@ -62,7 +62,7 @@ export default function Home() {
           </section>
 
           {/* RIGHT COLUMN: rows -> [Top (1fr), Radar area (7fr), Master Control Panel (auto)] */}
-          <aside className="h-full min-h-0 overflow-hidden grid grid-rows-[1fr_7fr_auto] gap-3">
+          <aside className="min-h-0 overflow-hidden flex flex-col gap-3 lg:grid lg:grid-rows-[1fr_7fr_auto]">
             {/* Top row (same height as Monitoring row). Keep MetricsBar here. */}
             <div className="min-h-0 overflow-hidden bg-black">
               <TopOverview />
@@ -72,18 +72,18 @@ export default function Home() {
             <div className="min-h-0 overflow-hidden flex flex-col">
               {/* Full-width header bar with yellow tab, like Monitoring */}
               <div className="flex items-center" style={{ backgroundColor: '#130f04ff' }}>
-                <div style={{ width: '8%', backgroundColor: '#c79325' }}>
+                <div className="w-full lg:w-[8%]" style={{ backgroundColor: '#c79325' }}>
                   <h2 className="pl-2 pr-2 font-bold text-black">GLOBAL QUEUE</h2>
                 </div>
               </div>
               {/* Two-column area: 10% ActionItems | 90% Radar */}
-              <div className="min-h-0 overflow-hidden grid" style={{ gridTemplateColumns: '8% 92%' }}>
+              <div className="min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-[8%_92%]">
                 {/* Global Queue (left, full radar height) */}
-                <div className="border-r border-[#352b19ff] bg-black min-h-0 overflow-hidden">
+                <div className="bg-black min-h-0 overflow-hidden border-b border-[#352b19ff] lg:border-b-0 lg:border-r">
                   <GlobalQueue />
                 </div>
                 {/* Radar (right) */}
-                <div className="min-h-0 overflow-hidden bg-black">
+                <div className="min-h-0 overflow-hidden bg-black h-64 md:h-80 lg:h-full">
                   <RadarCanvas message="" />
                 </div>
               </div>
