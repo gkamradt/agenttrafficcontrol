@@ -5,6 +5,7 @@ import { ensureConnected, postIntent } from '@/lib/simClient';
 import AudioPlayer from '@/components/AudioPlayer';
 import { tracks, radio } from '@/lib/audio/tracks';
 import { PLAN_NAMES, DEFAULT_PLAN_NAME } from '@/plans';
+import { appStore } from '@/lib/store';
 
 const LS_PREFIX = 'ccr.';
 const LS = {
@@ -23,6 +24,8 @@ export default function ControlBar() {
     try {
       const stored = localStorage.getItem(LS.plan) || DEFAULT_PLAN_NAME;
       setPlan(stored);
+      // Reflect selected plan in global UI store for ProjectId/Description
+      try { appStore.getState().setPlanName(stored); } catch {}
       const url = new URL(window.location.href);
       const urlSeed = url.searchParams.get('seed');
       const randomSeed = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -38,6 +41,8 @@ export default function ControlBar() {
 
   // Persist plan whenever it changes (engine is only updated via Execute or initial mount)
   useEffect(() => {
+    // Persist the user's selection, but do NOT update the displayed
+    // project id/description until Execute is clicked.
     try { localStorage.setItem(LS.plan, plan); } catch {}
   }, [plan]);
   // Speed persistence removed
@@ -61,6 +66,8 @@ export default function ControlBar() {
           postIntent({ type: 'set_plan', plan: plan });
           postIntent({ type: 'set_running', running: true });
           postIntent({ type: 'request_snapshot' });
+          // Reflect applied plan in the UI after executing
+          try { appStore.getState().setPlanName(plan); } catch {}
         }}
         className="text-xs px-2 py-1 border border-gray-600 text-gray-200 h-8"
       >Execute</button>

@@ -1,20 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { DEFAULT_PLAN_NAME } from '@/plans';
-
-// Mirrors LS key used in ControlBar
-const LS_PLAN_KEY = 'ccr.plan';
+import { appStore } from '@/lib/store';
 
 export default function ProjectIdDisplay() {
-  const [plan, setPlan] = useState<string>(DEFAULT_PLAN_NAME);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(LS_PLAN_KEY);
-      if (v) setPlan(v);
-    } catch {}
-  }, []);
-
+  const plan = useSyncExternalStore(
+    appStore.subscribe,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+  );
   return <span>{plan}</span>;
 }

@@ -1,7 +1,7 @@
 // Core constants for Calming Control Room (tunable via PRD)
 
 // Cost model (USD per token). Example: $0.002 per 1K tokens => 0.000002 per token
-export const COST_PER_TOKEN_USD = 0.00001;
+export const COST_PER_TOKEN_USD = 0.00013;
 
 // Concurrency and motion tuning
 export const MAX_CONCURRENT = 12;
@@ -33,6 +33,15 @@ export const RADAR_REFRESH_HZ = 30; // e.g., 30 Hz; set 60 for smoother motion
 
 // Engine tick rate (Hz). Worker internal loop cadence (not UI render).
 export const ENGINE_TICK_HZ = 30;
+
+// TPS dynamics (per-item throughput variability)
+// - TPS_ALPHA: smoothing toward the current target per tick (higher = faster moves)
+// - TPS_TARGET_HOLD_MS_*: how long to hold a sampled target before choosing a new one
+// - TPS_JITTER_FRAC: small per-tick flutter around the held target (as fraction of range)
+export const TPS_ALPHA = 0.3;
+export const TPS_TARGET_HOLD_MS_MIN = 1600;
+export const TPS_TARGET_HOLD_MS_MAX = 3600;
+export const TPS_JITTER_FRAC = 0.03;
 
 // Transport batching and store flush cadences (UI data pipeline)
 // - BRIDGE_BATCH_MS: Coalesces raw worker messages before applying to the app store.

@@ -14,6 +14,25 @@ export default function Home() {
       {/* Header */}
       <header className="p-4">
         <h1 className="text-2xl tracking-tighter font-bold text-gray-500 text-spacing-px">AGENT TRAFFIC CONTROL</h1>
+        <p className="mt-1 text-[10px] leading-none text-gray-500">
+          <a
+            href="https://github.com/gkamradt/agenttrafficcontrol"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-gray-400 italic underline"
+          >
+            OPEN SOURCE
+          </a>
+          <span className="px-1">•</span>
+          <a
+            href="https://x.com/gregkamradt"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-gray-400 italic underline"
+          >
+            BY GREG
+          </a>
+        </p>
       </header>
 
       {/* Controls row */}
@@ -85,7 +104,7 @@ export default function Home() {
                 </div>
                 {/* Radar (right) */}
                 <div className="min-h-0 overflow-hidden bg-black">
-                  <RadarCanvas message="" />
+                  <RadarCanvas />
                 </div>
               </div>
             </div>
@@ -119,7 +138,7 @@ export default function Home() {
                 <h2 className="bg-[#c79325] pl-2 pr-2 font-bold text-black">RADAR</h2>
               </div>
               <div className="border border-[#352b19ff] bg-black" style={{ height: 260 }}>
-                <RadarCanvas message="" />
+                <RadarCanvas />
               </div>
             </div>
 

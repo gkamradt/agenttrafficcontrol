@@ -7,14 +7,54 @@ import { createRNG } from '@/lib/rng';
 
 function clampDPR(dpr: number) { return Math.min(2, Math.max(1, dpr || 1)); }
 
-type RadarCanvasProps = { message?: string };
+// Story script configuration for typing/deleting animation in the radar message box
+type StoryLine = {
+  text: string;
+  pauseAfterMs?: number;
+  // Optional per-line cursor overrides
+  cursorChar?: string;
+  blinkMs?: number;
+};
+type CursorConfig = { char: string; blinkMs: number };
+type StoryConfig = {
+  lines: StoryLine[];
+  typingMsPerChar: number;    // speed while typing
+  deletingMsPerChar: number;  // speed while deleting
+  betweenLinesDelayMs: number; // delay after deleting before next line starts
+  startDelayMs?: number;      // initial delay before the story starts
+  loop?: boolean;             // loop back to the start after last line
+  cursor: CursorConfig;       // default blinking end character
+};
 
-export default function RadarCanvas({ message }: RadarCanvasProps) {
+// Default story/tutorial script. Tweak text and timings here.
+const STORY: StoryConfig = {
+  lines: [
+    { text: "Initializing agent traffic control..", pauseAfterMs: 3000, cursorChar: '.', blinkMs: 500 },
+    { text: "Connecting to ATC radio..", pauseAfterMs: 3200, cursorChar: '.', blinkMs: 300 },
+    { text: "Connecting ambient music..", pauseAfterMs: 3200, cursorChar: '.', blinkMs: 600 },
+    { text: "Enjoy the vibes of agents working..", pauseAfterMs: 4200, cursorChar: '.', blinkMs: 450 },
+    { text: "Play music below; switch between different ATC locations...", pauseAfterMs: 5200, cursorChar: '\\/', blinkMs: 500 },
+  ],
+  typingMsPerChar: 5,
+  deletingMsPerChar: 14,
+  betweenLinesDelayMs: 450,
+  startDelayMs: 350,
+  loop: true,
+  cursor: { char: "|", blinkMs: 500 },
+};
+
+export default function RadarCanvas() {
   const ref = useRef<HTMLCanvasElement | null>(null);
-  const messageRef = useRef<string | undefined>(message);
-
-  // keep message live without restarting effect
-  if (messageRef.current !== message) messageRef.current = message;
+  // current text to draw in the lower-right message box (updated by story engine)
+  const currentTextRef = useRef<string>("");
+  // Story engine state (kept in refs so we can update from rAF without rerenders)
+  const storyCfgRef = useRef<StoryConfig>(STORY);
+  const storyLineIdxRef = useRef<number>(0);
+  const storyCharIdxRef = useRef<number>(0);
+  const storyPhaseRef = useRef<"idle" | "typing" | "pause" | "deleting" | "between">("idle");
+  const nextEventAtRef = useRef<number>(0); // timestamp for next char or phase transition
+  const lastBlinkAtRef = useRef<number>(0);
+  const cursorVisibleRef = useRef<boolean>(true);
 
   useEffect(() => {
     const canvas = ref.current;
@@ -131,11 +171,16 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
       ctx.lineWidth = 1.5;
       ctx.strokeRect(cx - box / 2, cy - box / 2, box, box);
 
-      // Lower-right message box
-      const text = (messageRef.current && messageRef.current.trim().length > 0) ? messageRef.current : '—';
+      // Lower-right message box (dynamic story text)
+      const baseText = (currentTextRef.current || '');
+      const effectiveLine = storyCfgRef.current.lines[(storyLineIdxRef.current || 0) % Math.max(1, storyCfgRef.current.lines.length)] || { text: '' };
+      const effCursorChar = (effectiveLine.cursorChar ?? storyCfgRef.current.cursor.char) || '';
+      const isPause = storyPhaseRef.current === 'pause';
+      const textToDraw = baseText.trim().length > 0 ? baseText : '—';
+      const measureText = isPause ? textToDraw + effCursorChar : textToDraw;
       const padX = 8, padY = 6;
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
-      const metrics = ctx.measureText(text);
+      const metrics = ctx.measureText(measureText);
       const tw = Math.min(Math.max(metrics.width, 60), Math.max(60, w * 0.5));
       const th = 18;
       const boxW = tw + padX * 2;
@@ -150,9 +195,21 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
       ctx.strokeStyle = 'rgba(255,255,255,0.2)';
       ctx.lineWidth = 1;
       ctx.strokeRect(bx, by, boxW, boxH);
-      // text
-      ctx.fillStyle = 'rgba(220,220,220,0.9)';
-      ctx.fillText(text, bx + padX, by + padY + th - 6);
+      // text + non-shifting cursor draw
+      ctx.fillStyle = '#fff';
+      const tx = bx + padX;
+      const ty = by + padY + th - 6;
+      // draw base text
+      ctx.textAlign = 'start';
+      ctx.fillText(textToDraw, tx, ty);
+      // draw cursor char in-place (invisible when blink-off) so width doesn't shift
+      if (isPause && effCursorChar) {
+        const baseW = ctx.measureText(textToDraw).width;
+        const prevAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = cursorVisibleRef.current ? 1 : 0;
+        ctx.fillText(effCursorChar, tx + baseW, ty);
+        ctx.globalAlpha = prevAlpha;
+      }
     }
 
     // Track previous status per item to detect transitions to 'done'
@@ -251,10 +308,90 @@ export default function RadarCanvas({ message }: RadarCanvasProps) {
       lastDrawAt = nowPerf;
       // Guard against missing context (TS + runtime safety)
       if (!canvas || !ctx) return;
+
+      // STORY ENGINE: update message text and cursor by time
+      const now = Date.now();
+      const cfg = storyCfgRef.current;
+      const lines = cfg.lines;
+      if (lines.length > 0) {
+        if (storyPhaseRef.current === 'idle') {
+          // Initialize on first run
+          storyLineIdxRef.current = 0;
+          storyCharIdxRef.current = 0;
+          storyPhaseRef.current = 'typing';
+          nextEventAtRef.current = now + (cfg.startDelayMs || 0);
+          lastBlinkAtRef.current = now;
+          cursorVisibleRef.current = true;
+        }
+        // Blink management (only visible when paused at end of a line)
+        const effBlinkMs = Math.max(
+          100,
+          (lines[storyLineIdxRef.current]?.blinkMs ?? cfg.cursor.blinkMs)
+        );
+        if (now - lastBlinkAtRef.current >= effBlinkMs) {
+          cursorVisibleRef.current = !cursorVisibleRef.current;
+          lastBlinkAtRef.current = now;
+        }
+        const line = lines[storyLineIdxRef.current];
+        const full = line.text;
+        // Step the phase machine based on time
+        if (now >= nextEventAtRef.current) {
+          switch (storyPhaseRef.current) {
+            case 'typing': {
+              if (storyCharIdxRef.current < full.length) {
+                storyCharIdxRef.current += 1;
+                nextEventAtRef.current = now + Math.max(1, cfg.typingMsPerChar);
+              }
+              if (storyCharIdxRef.current >= full.length) {
+                storyCharIdxRef.current = full.length;
+                storyPhaseRef.current = 'pause';
+                const pause = typeof line.pauseAfterMs === 'number' ? line.pauseAfterMs : 1000;
+                nextEventAtRef.current = now + Math.max(0, pause);
+              }
+              break;
+            }
+            case 'pause': {
+              // end of pause: begin deleting (if looping) or stay blinking at end
+              if (cfg.loop) {
+                storyPhaseRef.current = 'deleting';
+                nextEventAtRef.current = now + Math.max(1, cfg.deletingMsPerChar);
+              } else {
+                // Hold final line with blink; schedule next check
+                nextEventAtRef.current = now + 200; // keep engine alive for blink
+              }
+              break;
+            }
+            case 'deleting': {
+              if (storyCharIdxRef.current > 0) {
+                storyCharIdxRef.current -= 1;
+                nextEventAtRef.current = now + Math.max(1, cfg.deletingMsPerChar);
+              }
+              if (storyCharIdxRef.current <= 0) {
+                storyCharIdxRef.current = 0;
+                storyPhaseRef.current = 'between';
+                nextEventAtRef.current = now + Math.max(0, cfg.betweenLinesDelayMs);
+              }
+              break;
+            }
+            case 'between': {
+              // advance to next line
+              storyLineIdxRef.current = (storyLineIdxRef.current + 1) % lines.length;
+              storyPhaseRef.current = 'typing';
+              nextEventAtRef.current = now + Math.max(1, cfg.typingMsPerChar);
+              break;
+            }
+            default:
+              break;
+          }
+        }
+        // Build the current display base string (cursor drawn separately to avoid shifting)
+        const base = full.slice(0, Math.max(0, Math.min(full.length, storyCharIdxRef.current)));
+        currentTextRef.current = base;
+      }
       // Redraw static each frame (simple MVP approach)
       drawStatic(wCss, hCss);
       const state = appStore.getState();
-      const now = Date.now();
+      // 'now' already declared above for story engine
       const c = ctx as CanvasRenderingContext2D;
 
       // Arrow styling knobs

@@ -19,10 +19,6 @@ function fmtUSD(n?: number) {
   const v = Number.isFinite(n as number) ? (n as number) : 0;
   return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
 }
-function fmtFloat(n?: number, f = 1) {
-  const v = Number.isFinite(n as number) ? (n as number) : 0;
-  return v.toFixed(f);
-}
 
 export default function TopOverview({ compact = false, hideCompletion = false }: { compact?: boolean; hideCompletion?: boolean }) {
   const m = useMetrics();
@@ -136,7 +132,7 @@ export default function TopOverview({ compact = false, hideCompletion = false }:
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gapPx, color: '#cfcfcf', padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className={labelCls} style={{ color: '#a0a0a0'}}>TOKENS / SEC</div>
-            <div className={valueCls} style={{ marginTop: 4 }}>{fmtFloat(m.live_tps, 2)}</div>
+            <div className={valueCls} style={{ marginTop: 4 }}>{fmtInt(m.live_tps)}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className={labelCls} style={{ color: '#a0a0a0'}}>SPEND / SEC</div>

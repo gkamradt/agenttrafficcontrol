@@ -6,6 +6,8 @@ type PartialWithId<T extends { id: string }> = Partial<T> & { id: string };
 
 export interface UIState extends AppState {
   lastTickId: number;
+  // Currently selected plan name (for UI display)
+  plan_name?: string;
   // Reducers
   applySnapshot: (snapshot: AppState) => void;
   applyTick: (diff: {
@@ -15,6 +17,7 @@ export interface UIState extends AppState {
     metrics?: Partial<ProjectMetrics>;
     agents_remove?: string[];
   }) => void;
+  setPlanName: (name: string) => void;
 }
 
 const emptyMetrics: ProjectMetrics = {
@@ -34,6 +37,7 @@ export function createAppStore(initial?: Partial<AppState>) {
     seed: initial?.seed ?? DEFAULT_SEED,
     running: initial?.running ?? RUNNING_DEFAULT,
     lastTickId: 0,
+    plan_name: initial && (initial as UIState).plan_name,
 
     applySnapshot(snapshot) {
       set({
@@ -80,6 +84,10 @@ export function createAppStore(initial?: Partial<AppState>) {
 
         return { items, agents, metrics, lastTickId: diff.tick_id };
       });
+    },
+
+    setPlanName(name: string) {
+      set({ plan_name: name });
     },
   }));
 }

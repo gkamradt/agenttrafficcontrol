@@ -50,8 +50,31 @@ const jetBrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
+  // Helps Next generate absolute URLs for OG/Twitter images
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "Agent Traffic Control (ATC)",
   description: "Agent Traffic Control Room",
+  openGraph: {
+    title: "Agent Traffic Control (ATC)",
+    description: "Agent Traffic Control Room",
+    type: "website",
+    url: "/",
+    siteName: "Agent Traffic Control (ATC)",
+    images: [
+      {
+        url: "/images/ATC_OG.png",
+        width: 2048,
+        height: 1280,
+        alt: "Agent Traffic Control (ATC)",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Agent Traffic Control (ATC)",
+    description: "Agent Traffic Control Room",
+    images: ["/images/ATC_OG.png"],
+  },
 };
 
 export default function RootLayout({

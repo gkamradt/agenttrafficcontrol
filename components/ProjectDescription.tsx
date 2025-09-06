@@ -1,23 +1,19 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useSyncExternalStore } from 'react';
 import { getPlanByName, ALL_PLANS, DEFAULT_PLAN_NAME } from '@/plans';
-
-const LS_PLAN_KEY = 'ccr.plan';
+import { appStore } from '@/lib/store';
 
 export default function ProjectDescription() {
-  const [plan, setPlan] = useState<string>(DEFAULT_PLAN_NAME);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(LS_PLAN_KEY);
-      if (v) setPlan(v);
-    } catch {}
-  }, []);
+  const plan = useSyncExternalStore(
+    appStore.subscribe,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+  );
 
   const desc = useMemo(() => {
     const p = getPlanByName(plan) || ALL_PLANS[0];
-    return p.description || 'Agent Control Traffic Control';
+    return p.description || 'Agent Traffic Control';
   }, [plan]);
 
   return <span>{desc}</span>;

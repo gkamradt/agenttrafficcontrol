@@ -3,7 +3,7 @@
 // running in a WorkerGlobalScope (not during Vitest/jsdom imports).
 
 import { DEFAULT_SEED, RUNNING_DEFAULT } from '../lib/config';
-import { ENGINE_TICK_HZ } from '@/lib/constants';
+import { ENGINE_TICK_HZ, TPS_ALPHA, TPS_TARGET_HOLD_MS_MIN, TPS_TARGET_HOLD_MS_MAX, TPS_JITTER_FRAC } from '@/lib/constants';
 import { debugLog } from '../lib/debug';
 import { buildItemsFromPlan, detectCycles, promoteQueuedToAssigned, countInProgress, computeMetrics } from '@/lib/engine';
 import { getPlanByName, ALL_PLANS, DEFAULT_PLAN_NAME } from '@/plans';
@@ -110,12 +110,41 @@ function stepEngine(ctx: Ctx) {
     }
   }
 
+  // Per-item TPS target state (held targets to create bursty behavior)
+  type TpsState = { target: number; nextAt: number };
+  // Keep this map across ticks by hoisting to module scope; fall back to a property on ctx
+  // to avoid redeclaring across calls in certain bundlers.
+  const tpsMap: Map<string, TpsState> = (stepEngine as any)._tpsMap || new Map<string, TpsState>();
+  (stepEngine as any)._tpsMap = tpsMap;
+
   // Update in-progress items
   for (const it of Object.values(ctx.state.items)) {
-    if (it.status !== 'in_progress') continue;
-    // wobble tps within [min,max]
-    const target = it.tps_min + (it.tps_max - it.tps_min) * ctx.rng.next();
-    let tps = 0.9 * (it.tps || it.tps_min) + 0.1 * target;
+    if (it.status !== 'in_progress') {
+      // cleanup any lingering state when item leaves in_progress
+      if ((it.status === 'done' || it.status === 'queued' || it.status === 'assigned') && tpsMap.has(it.id)) tpsMap.delete(it.id);
+      continue;
+    }
+
+    // Sample/hold target for a burst window
+    let st = tpsMap.get(it.id);
+    if (!st || now >= st.nextAt) {
+      const range = Math.max(0, it.tps_max - it.tps_min);
+      const baseTarget = it.tps_min + range * ctx.rng.next();
+      // Hold window scaled by speed so faster sims don't feel too stable
+      const holdMs = (TPS_TARGET_HOLD_MS_MIN + (TPS_TARGET_HOLD_MS_MAX - TPS_TARGET_HOLD_MS_MIN) * ctx.rng.next()) / Math.max(0.0001, ctx.speed || 1);
+      st = { target: baseTarget, nextAt: now + Math.max(100, Math.floor(holdMs)) };
+      tpsMap.set(it.id, st);
+    }
+
+    // Small flutter around the held target
+    const range = Math.max(0, it.tps_max - it.tps_min);
+    const jitterAmp = TPS_JITTER_FRAC * range;
+    const jitter = (ctx.rng.next() * 2 - 1) * jitterAmp;
+    const targetEffective = Math.max(it.tps_min, Math.min(it.tps_max, st.target + jitter));
+
+    // Exponential smoothing toward target to avoid instant jumps
+    const prev = Number.isFinite(it.tps as number) ? (it.tps as number) : it.tps_min;
+    let tps = (1 - TPS_ALPHA) * prev + TPS_ALPHA * targetEffective;
     if (!Number.isFinite(tps)) tps = it.tps_min;
     tps = Math.max(it.tps_min, Math.min(it.tps_max, tps));
     it.tps = tps;
@@ -130,6 +159,8 @@ function stepEngine(ctx: Ctx) {
     // completion
     if (it.eta_ms <= 0) {
       it.status = 'done';
+      // cleanup state on completion
+      if (tpsMap.has(it.id)) tpsMap.delete(it.id);
       const agentId = it.agent_id;
       it.agent_id = undefined;
       diffs.items.push({ id: it.id, status: 'done', agent_id: undefined });

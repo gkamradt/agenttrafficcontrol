@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useMemo, useSyncExternalStore } from 'react';
 import { getPlanByName, ALL_PLANS } from '@/plans';
 import type { PlanDefinition, WorkGroupDef } from '@/plans/types';
 import { appStore } from '@/lib/store';
 import { DEFAULT_PLAN_NAME } from '@/plans';
-
-const LS_PLAN_KEY = 'ccr.plan';
 
 function pickPlan(name: string): PlanDefinition {
   return getPlanByName(name) ?? ALL_PLANS[0];
@@ -26,21 +24,18 @@ function deriveGroupsFromItems(items: ReturnType<typeof appStore.getState>['item
 }
 
 export default function OperatorGroups() {
-  const [planName, setPlanName] = useState<string>(DEFAULT_PLAN_NAME);
-
   // Subscribe to live items so completion updates over time
   const items = useSyncExternalStore(
     appStore.subscribe,
     () => appStore.getState().items,
     () => appStore.getState().items,
   );
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(LS_PLAN_KEY);
-      if (v) setPlanName(v);
-    } catch {}
-  }, []);
+  // Subscribe to the applied plan name so Operator Action Items update on Execute
+  const planName = useSyncExternalStore(
+    appStore.subscribe,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+    () => appStore.getState().plan_name || DEFAULT_PLAN_NAME,
+  );
 
   const groups = useMemo(() => {
     const plan = pickPlan(planName);
