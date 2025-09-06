@@ -53,10 +53,10 @@ export const metadata: Metadata = {
   // Helps Next generate absolute URLs for OG/Twitter images
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "Agent Traffic Control (ATC)",
-  description: "Agent Traffic Control Room",
+  description: "Direct the vibe of your agents in the Agent Traffic Control Room",
   openGraph: {
     title: "Agent Traffic Control (ATC)",
-    description: "Agent Traffic Control Room",
+    description: "Direct the vibe of your agents in the Agent Traffic Control Room",
     type: "website",
     url: "/",
     siteName: "Agent Traffic Control (ATC)",
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Agent Traffic Control (ATC)",
-    description: "Agent Traffic Control Room",
+    description: "Direct the vibe of your agents in the Agent Traffic Control Room",
     images: ["/images/ATC_OG.png"],
   },
 };
