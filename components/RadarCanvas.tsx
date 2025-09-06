@@ -179,13 +179,16 @@ export default function RadarCanvas() {
       const textToDraw = baseText.trim().length > 0 ? baseText : '—';
       const measureText = isPause ? textToDraw + effCursorChar : textToDraw;
       const padX = 8, padY = 6;
-      ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      const margin = 10;
+      const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 640);
+      const fontSize = isMobile ? 10 : 12;
+      ctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       const metrics = ctx.measureText(measureText);
-      const tw = Math.min(Math.max(metrics.width, 60), Math.max(60, w * 0.5));
-      const th = 18;
+      const maxTextWidth = isMobile ? w - margin * 2 - padX * 2 : Math.max(60, w * 0.5);
+      const tw = Math.min(Math.max(metrics.width, 60), maxTextWidth);
+      const th = fontSize + 6;
       const boxW = tw + padX * 2;
       const boxH = th + padY * 2;
-      const margin = 10;
       const bx = w - boxW - margin;
       const by = h - boxH - margin;
       // box background
@@ -198,7 +201,7 @@ export default function RadarCanvas() {
       // text + non-shifting cursor draw
       ctx.fillStyle = '#fff';
       const tx = bx + padX;
-      const ty = by + padY + th - 6;
+      const ty = by + padY + fontSize;
       // draw base text
       ctx.textAlign = 'start';
       ctx.fillText(textToDraw, tx, ty);
