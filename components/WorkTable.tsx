@@ -61,7 +61,7 @@ export default function WorkTable({
 
   const widthMap: Record<ColumnKey, number> = compact
     ? { id: 22, agent: 26, sector: 38, work: 150, tokens: 34, tps: 34, eta: 42 }
-    : { id: 30, agent: 35, sector: 50, work: 225, tokens: 40, tps: 40, eta: 50 };
+    : { id: 30, agent: 35, sector: 65, work: 225, tokens: 40, tps: 45, eta: 50 };
   const labelMap: Record<ColumnKey, string> = {
     id: 'ID',
     agent: 'AGENT',
