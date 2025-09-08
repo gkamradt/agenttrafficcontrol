@@ -1,38 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent Traffic Control
+
+A minimal Next.js dashboard to monitor and control AI agent traffic.
+
+![Agent Traffic Control](homepage.png)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+git clone https://github.com/gkamradt/agenttrafficcontrol && cd agenttrafficcontrol
+npm install
+cp .env.example .env  # add your keys if needed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How It Works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+On first load the client establishes a connection to a dedicated Web Worker engine (`workers/engine.ts`). Runtime knobs live in `lib/config.ts` and the engine loads a plan definition from `plans/` to build the initial project graph.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The UI immediately sends intents to the worker (set seed → set plan → start running) and the engine begins ticking at `ENGINE_TICK_HZ`, emitting a full `snapshot` once and `tick` diffs thereafter.
 
-## Learn More
+Worker messages flow through a tiny transport (`lib/simBridge.ts`) that batches events, then into a coalescing adapter (`lib/bridgeToStore.ts`) that applies them to a single Zustand store (`lib/store.ts`).
 
-To learn more about Next.js, take a look at the following resources:
+All React components read from this store; controls like `components/ControlBar.tsx` post intents (change plan, start/pause, reseed) back to the engine. The store is the UI’s source of truth; the engine is the simulation’s source of truth.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Includes live streams for ambiance:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- ATC: https://www.youtube.com/watch?v=mOec9Fu3Jz0
+- Music: https://www.youtube.com/watch?v=jfKfPfyJRdk
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-https://pbs.twimg.com/media/GzjItN3XMAAz5x7?format=jpg&name=4096x4096
+```
+          .env + lib/config.ts        plans/
+                   │                    │
+                   ▼                    ▼
+             Web Worker Engine  <─ loads plan
+                 (ticks)
+                   │  snapshot/tick
+                   ▼
+             lib/simBridge.ts   (batch)
+                   │
+                   ▼
+          lib/bridgeToStore.ts  (coalesce)
+                   │
+                   ▼
+              lib/store.ts  (Zustand appStore)
+                   │
+                   ▼
+            React components (read state)
+                   ▲
+                   │ intents (set_plan, set_seed, set_running)
+          components/ControlBar.tsx via lib/simClient.ts
+```
