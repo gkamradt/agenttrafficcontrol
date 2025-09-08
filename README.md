@@ -1,6 +1,8 @@
 # Agent Traffic Control
 
-A minimal Next.js dashboard to monitor and control AI agent traffic.
+A minimal Next.js dashboard to monitor and control AI agent traffic. View live at https://agenttrafficcontrol.com.
+
+Best with full screen and sound on.
 
 ![Agent Traffic Control](homepage.png)
 
