@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { RING_COUNT, RADAR_CURVE_AMOUNT, RADAR_MAX_TURNS, RADAR_WOBBLE, RADAR_PULSE_DURATION_MS, RADAR_PULSE_MAX_RADIUS, RADAR_PULSE_WIDTH, RADAR_PULSE_SECONDARY, RADAR_REFRESH_HZ } from '@/lib/constants';
+import { RING_COUNT, RADAR_CURVE_AMOUNT, RADAR_MAX_TURNS, RADAR_WOBBLE, RADAR_PULSE_DURATION_MS, RADAR_PULSE_MAX_RADIUS, RADAR_PULSE_WIDTH, RADAR_PULSE_SECONDARY, RADAR_REFRESH_HZ, RADAR_PING_VOLUME, RADAR_PING_AUDIO_PATH } from '@/lib/constants';
 import { appStore } from '@/lib/store';
 import { createRNG } from '@/lib/rng';
 
@@ -47,6 +47,8 @@ export default function RadarCanvas() {
   const ref = useRef<HTMLCanvasElement | null>(null);
   // current text to draw in the lower-right message box (updated by story engine)
   const currentTextRef = useRef<string>("");
+  // audio element for radar ping
+  const pingAudioRef = useRef<HTMLAudioElement | null>(null);
   // Story engine state (kept in refs so we can update from rAF without rerenders)
   const storyCfgRef = useRef<StoryConfig>(STORY);
   const storyLineIdxRef = useRef<number>(0);
@@ -62,7 +64,17 @@ export default function RadarCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Prepare ping audio element once on mount
+    try {
+      const a = new Audio(RADAR_PING_AUDIO_PATH);
+      a.preload = 'auto';
+      a.volume = RADAR_PING_VOLUME;
+      // Some browsers require user gesture; we will only play after toggle
+      pingAudioRef.current = a;
+    } catch {}
+
     let wCss = 0, hCss = 0, cx = 0, cy = 0, r = 0;
+    const isVisibleRef = { current: false } as { current: boolean };
 
     function resize() {
       if (!canvas || !ctx) return;
@@ -70,6 +82,8 @@ export default function RadarCanvas() {
       const rect = canvas.getBoundingClientRect();
       wCss = Math.max(200, rect.width);
       hCss = Math.max(200, rect.height);
+      // Consider this canvas visible for audio purposes only if it actually has layout space
+      isVisibleRef.current = rect.width > 0 && rect.height > 0;
       canvas.width = Math.floor(wCss * dpr);
       canvas.height = Math.floor(hCss * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -301,6 +315,27 @@ export default function RadarCanvas() {
     const pulses: Pulse[] = [];
     // Track items we've already emitted a pulse for (by item id)
     const pulsedItems = new Set<string>();
+    // Track items that have already produced a sound effect to avoid double audio
+    const soundedItems = new Set<string>();
+    // Centralized pulse emitter that also plays audio if enabled
+    function emitPulse(created: number, itemId?: string, playSound: boolean = true) {
+      pulses.push({ created });
+      // If radar ping sound is enabled, play the short ping only once per itemId
+      try {
+        const enable = appStore.getState().pingAudioEnabled;
+        if (playSound && enable && pingAudioRef.current && isVisibleRef.current) {
+          if (!itemId) {
+            // No item id context; play normally
+            try { pingAudioRef.current.currentTime = 0; } catch {}
+            void pingAudioRef.current.play().catch(() => {});
+          } else if (!soundedItems.has(itemId)) {
+            soundedItems.add(itemId);
+            try { pingAudioRef.current.currentTime = 0; } catch {}
+            void pingAudioRef.current.play().catch(() => {});
+          }
+        }
+      } catch {}
+    }
     function drawAgents() {
       // Throttle by desired refresh rate
       const nowPerf = performance.now();
@@ -469,7 +504,8 @@ export default function RadarCanvas() {
       for (const it of Object.values(state.items)) {
         const prev = prevItemStatus.get(it.id);
         if (prev !== 'done' && it.status === 'done' && !pulsedItems.has(it.id)) {
-          pulses.push({ created: now });
+          // Visual pulse for 'done', but do not play sound here
+          emitPulse(now, it.id, false);
           pulsedItems.add(it.id);
         }
         prevItemStatus.set(it.id, it.status);
@@ -577,7 +613,8 @@ export default function RadarCanvas() {
           const dx = x - cx, dy = y - cy;
           const nearR = Math.hypot(dx, dy) <= Math.max(2, r * 0.01); // pixel/radius guard
           if (nearT || nearR) {
-            pulses.push({ created: now });
+            // Arrival pulse at center: emit with sound
+            emitPulse(now, item.id, true);
             pulsedItems.add(item.id);
           }
         }

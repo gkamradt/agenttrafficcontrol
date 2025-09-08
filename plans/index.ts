@@ -1,7 +1,8 @@
 // Import concrete plans so we can build a registry
 import { humanoidPlan } from './humanoid';
 import { martianHomecomingPlan } from './martianHomecomingPlan';
-export { humanoidPlan, martianHomecomingPlan };
+import { franticPlan } from './frantic';
+export { humanoidPlan, martianHomecomingPlan, franticPlan };
 export * from './types';
 
 // Central registry to drive UI/worker off plan definitions
@@ -10,6 +11,7 @@ import type { PlanDefinition } from './types';
 export const ALL_PLANS: readonly PlanDefinition[] = [
   humanoidPlan,
   martianHomecomingPlan,
+  franticPlan,
 ] as const;
 
 export const PLAN_NAMES = ALL_PLANS.map(p => p.name) as readonly string[];

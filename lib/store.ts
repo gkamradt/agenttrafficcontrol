@@ -8,6 +8,8 @@ export interface UIState extends AppState {
   lastTickId: number;
   // Currently selected plan name (for UI display)
   plan_name?: string;
+  // UI: whether radar ping sound is enabled
+  pingAudioEnabled: boolean;
   // Reducers
   applySnapshot: (snapshot: AppState) => void;
   applyTick: (diff: {
@@ -18,6 +20,8 @@ export interface UIState extends AppState {
     agents_remove?: string[];
   }) => void;
   setPlanName: (name: string) => void;
+  setPingAudioEnabled: (enabled: boolean) => void;
+  togglePingAudio: () => void;
 }
 
 const emptyMetrics: ProjectMetrics = {
@@ -38,6 +42,7 @@ export function createAppStore(initial?: Partial<AppState>) {
     running: initial?.running ?? RUNNING_DEFAULT,
     lastTickId: 0,
     plan_name: initial && (initial as UIState).plan_name,
+    pingAudioEnabled: false,
 
     applySnapshot(snapshot) {
       set({
@@ -88,6 +93,15 @@ export function createAppStore(initial?: Partial<AppState>) {
 
     setPlanName(name: string) {
       set({ plan_name: name });
+    },
+
+    setPingAudioEnabled(enabled: boolean) {
+      set({ pingAudioEnabled: !!enabled });
+    },
+
+    togglePingAudio() {
+      const cur = get().pingAudioEnabled;
+      set({ pingAudioEnabled: !cur });
     },
   }));
 }

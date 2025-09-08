@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { ensureConnected, postIntent } from '@/lib/simClient';
 import AudioPlayer from '@/components/AudioPlayer';
 import { tracks, radio } from '@/lib/audio/tracks';
@@ -15,6 +15,11 @@ const LS = {
 
 export default function ControlBar() {
   const [plan, setPlan] = useState<string>(DEFAULT_PLAN_NAME);
+  const pingEnabled = useSyncExternalStore(
+    appStore.subscribe,
+    () => appStore.getState().pingAudioEnabled,
+    () => appStore.getState().pingAudioEnabled,
+  );
   // Speed controls temporarily removed for stability
   // No longer exposing running/pause in UI
 
@@ -74,8 +79,37 @@ export default function ControlBar() {
 
       {/* Speed controls removed for now */}
 
-      {/* Right-aligned players: Radio + Music */}
+      {/* Right-aligned players: Radio + Music + Ping toggle */}
       <div className="ml-auto flex items-end gap-6">
+        {/* Radar ping sound toggle with label above (SFX) */}
+        <div className="flex flex-col items-end gap-1 text-sm">
+          <div className="text-gray-300 select-none">SFX</div>
+          <button
+            type="button"
+            onClick={() => appStore.getState().togglePingAudio()}
+            title={pingEnabled ? 'Radar ping sound: ON' : 'Radar ping sound: OFF'}
+            className={`h-8 w-8 grid place-items-center border ${pingEnabled ? 'border-green-500/70 text-green-400' : 'border-gray-600 text-gray-300'} bg-black hover:bg-gray-900`}
+            aria-pressed={pingEnabled}
+            aria-label={pingEnabled ? 'Disable radar ping sound' : 'Enable radar ping sound'}
+          >
+            {pingEnabled ? (
+              // Speaker with waves (on)
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10h3l4-3v10l-4-3H3z" fill="currentColor" stroke="none" />
+                <path d="M15 9c1.5 1.5 1.5 4.5 0 6" />
+                <path d="M17.5 7c2.5 2.5 2.5 7.5 0 10" />
+                <path d="M20 5c3.3 3.3 3.3 10.7 0 14" />
+              </svg>
+            ) : (
+              // Speaker with X (muted)
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10h3l4-3v10l-4-3H3z" fill="currentColor" stroke="none" />
+                <path d="M16 8l6 6" />
+                <path d="M22 8l-6 6" />
+              </svg>
+            )}
+          </button>
+        </div>
         <AudioPlayer tracks={radio} showSourceLink className="text-right" />
         <AudioPlayer tracks={tracks} className="text-right" />
       </div>
